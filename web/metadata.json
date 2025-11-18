@@ -1,0 +1,5 @@
+{
+  "name": "Mini E-Learning Platform",
+  "description": "A mini e-learning platform where students can browse courses, enroll, watch lessons, and take quizzes. Teachers can create courses and manage content, and admins can oversee the platform.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,218 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+enum LessonType {
+  VIDEO
+  PDF
+  TEXT
+}
+
+// User model for authentication and authorization
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  fullName  String?
+  avatar    String?
+  role      UserRole @default(STUDENT)
+  isActive  Boolean  @default(true)
+  isBanned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  coursesCreated Course[]     @relation("TeacherCourses")
+  enrollments    Enrollment[]
+  quizAttempts   QuizAttempt[]
+  progress       Progress[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+// Course model for course management
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  thumbnail   String?
+  category    String?
+  level       String?  // Beginner, Intermediate, Advanced
+  isPublished Boolean  @default(false)
+  teacherId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  teacher     User         @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  quizzes     Quiz[]
+  enrollments Enrollment[]
+
+  @@index([teacherId])
+  @@index([isPublished])
+  @@index([category])
+  @@map("courses")
+}
+
+// Lesson model for lesson content (videos/PDFs)
+model Lesson {
+  id          String     @id @default(uuid())
+  title       String
+  description String?    @db.Text
+  type        LessonType
+  contentUrl  String? // URL to video or PDF
+  content     String?    @db.Text // For text-based lessons
+  duration    Int? // Duration in seconds (for videos)
+  order       Int // Order within the course
+  courseId    String
+  isPublished Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  course   Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress Progress[]
+
+  @@index([courseId])
+  @@index([order])
+  @@map("lessons")
+}
+
+// Quiz model for assessments
+model Quiz {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  courseId    String
+  passingScore Int     @default(70) // Percentage required to pass
+  timeLimit   Int? // Time limit in minutes
+  order       Int // Order within the course
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  course    Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions Question[]
+  attempts  QuizAttempt[]
+
+  @@index([courseId])
+  @@map("quizzes")
+}
+
+// Question model for quiz questions
+model Question {
+  id       String       @id @default(uuid())
+  quizId   String
+  question String       @db.Text
+  type     QuestionType @default(MULTIPLE_CHOICE)
+  points   Int          @default(1)
+  order    Int
+
+  // Relations
+  quiz    Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers Answer[]
+
+  @@index([quizId])
+  @@map("questions")
+}
+
+// Answer model for question options
+model Answer {
+  id         String  @id @default(uuid())
+  questionId String
+  answerText String  @db.Text
+  isCorrect  Boolean @default(false)
+  order      Int
+
+  // Relations
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("answers")
+}
+
+// QuizAttempt model for student quiz submissions
+model QuizAttempt {
+  id          String   @id @default(uuid())
+  quizId      String
+  studentId   String
+  score       Float // Percentage score
+  answers     Json // Store student's answers as JSON
+  isPassed    Boolean
+  timeSpent   Int? // Time spent in seconds
+  completedAt DateTime @default(now())
+
+  // Relations
+  quiz    Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@index([studentId])
+  @@map("quiz_attempts")
+}
+
+// Enrollment model for student course enrollments
+model Enrollment {
+  id         String   @id @default(uuid())
+  studentId  String
+  courseId   String
+  enrolledAt DateTime @default(now())
+  completedAt DateTime?
+  progress   Float    @default(0) // Overall course progress percentage
+
+  // Relations
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@index([studentId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+// Progress model for tracking lesson completion
+model Progress {
+  id          String    @id @default(uuid())
+  studentId   String
+  lessonId    String
+  courseId    String
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson  Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, lessonId])
+  @@index([studentId])
+  @@index([lessonId])
+  @@index([courseId])
+  @@map("progress")
+}

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate, authorize } from '@/middleware/auth.middleware';
+import { authenticate } from '@/middleware/auth.middleware';
+import { authorize } from '@/middleware/auth.middleware';
 import { validate } from '@/middleware/validation.middleware';
 import * as quizController from '@/controllers/quiz.controller';
 

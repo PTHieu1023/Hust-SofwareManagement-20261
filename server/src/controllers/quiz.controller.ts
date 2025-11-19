@@ -1,34 +1,42 @@
-import { AuthRequest } from '@/middleware/auth';
-import { Response } from 'express';
-
-export const getQuizzesByCourse = async (req: AuthRequest, res: Response) => {
+import { AuthRequest } from '@/middleware/auth.middleware';
+import { NextFunction, Response } from 'express';
+    
+export const getQuizzesByCourse = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
     // TODO: Implement getQuizzesByCourse controller
-};
-
-export const getQuizById = async (req: AuthRequest, res: Response) => {
-    // TODO: Implement getQuizById controller
-};
-
-export const createQuiz = async (req: AuthRequest, res: Response) => {
-    // TODO: Implement createQuiz controller
+    return res.status(501).json({ message: 'Not implemented' });
 };
         
-export const updateQuiz = async (req: AuthRequest, res: Response) => {
+export const getQuizById = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
+    // TODO: Implement getQuizById controller
+    return res.status(501).json({ message: 'Not implemented' });
+};
+    
+export const createQuiz = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
+    // TODO: Implement createQuiz controller
+    return res.status(501).json({ message: 'Not implemented' });
+};
+            
+export const updateQuiz = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
     // TODO: Implement updateQuiz controller
+    return res.status(501).json({ message: 'Not implemented' });
 };
-
-export const deleteQuiz = async (req: AuthRequest, res: Response) => {
+    
+export const deleteQuiz = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
     // TODO: Implement deleteQuiz controller
+    return res.status(501).json({ message: 'Not implemented' });
 };
-
-export const addQuestion = async (req: AuthRequest, res: Response) => {
+    
+export const addQuestion = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
     // TODO: Implement addQuestion controller
+    return res.status(501).json({ message: 'Not implemented' });
 };
-
-export const submitQuiz = async (req: AuthRequest, res: Response) => {
+    
+export const submitQuiz = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
     // TODO: Implement submitQuiz controller
+    return res.status(501).json({ message: 'Not implemented' });
 };
-
-export const getQuizAttempts = async (req: AuthRequest, res: Response) => {
+    
+export const getQuizAttempts = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
     // TODO: Implement getQuizAttempts controller
+    return res.status(501).json({ message: 'Not implemented' });
 };

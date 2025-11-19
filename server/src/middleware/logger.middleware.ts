@@ -9,4 +9,4 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
         logger.info(`[OUTGOING] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
     });
     return next();
-}
+};

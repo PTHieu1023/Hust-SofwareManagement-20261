@@ -52,4 +52,4 @@ const extractToken = (req: AuthRequest) => {
     };
 
     req.user = decoded;
-}
+};

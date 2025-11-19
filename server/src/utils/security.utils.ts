@@ -27,6 +27,9 @@ export const encrytpData = (data: string): string => {
 }
 
 export const decryptData = (encryptedData: string): string => {
+    if (typeof encryptedData !== 'string' || encryptedData.length < 32) {
+        throw new Error('Invalid encrypted data: insufficient length for auth tag.');
+    }
     const authTag = Buffer.from(encryptedData.slice(-32), 'hex');
     const encrypted = encryptedData.slice(0, -32);
     const decipher = crypto.createDecipheriv(

@@ -24,7 +24,7 @@ export const authenticate = (req: AuthRequest, _res: Response, next: NextFunctio
 export const authorize = (...roles: string[]) => {
     return (req: AuthRequest, _: Response, next: NextFunction) => {
         try {
-            if (!roles || roles.length === 0)
+            if (roles.length === 0)
                 return next();
             extractToken(req);
             const role = req.user?.role;

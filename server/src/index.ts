@@ -1,3 +1,3 @@
-import app from '@/config/app.config';
+import bootstrap from "@/config/app.config";
 
-app.bootstrap();
+bootstrap();

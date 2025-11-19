@@ -46,6 +46,9 @@
             ],
             "@types/*": [
                 "src/types/*"
+            ],
+            "@models/*": [
+                "src/models/*"
             ]
         }
     },

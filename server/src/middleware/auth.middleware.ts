@@ -1,7 +1,6 @@
-import app from '@/config/app.config';
+import { verifyToken } from '@/utils/jwt.utils';
 import { NextFunction, Request, Response } from 'express';
 import createHttpError from 'http-errors';
-import jwt from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
     user?: {
@@ -28,7 +27,7 @@ export const authorize = (...roles: string[]) => {
                 return next();
             extractToken(req);
             const role = req.user?.role;
-            if (role && !roles.includes(role)) 
+            if (role && !roles.includes(role))
                 throw createHttpError(403, 'Insufficient permissions');
         } catch (error) {
             return next(error);
@@ -44,11 +43,7 @@ const extractToken = (req: AuthRequest) => {
         throw createHttpError(401, 'Authentication required');
     }
 
-    const decoded = jwt.verify(token, app.ENV.JWT_SECRET) as {
-        id: string;
-        email: string;
-        role: string;
-    };
+    const decoded = verifyToken(token) as { id: string; email: string; role: string };
 
     req.user = decoded;
 }

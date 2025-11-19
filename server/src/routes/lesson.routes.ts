@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate, authorize } from '@/middleware/auth';
-import { validate } from '@/middleware/validate';
-import { upload } from '@/middleware/upload';
+import { authenticate, authorize } from '@/middleware/auth.middleware';
+import { validate } from '@/middleware/validation.middleware';
+import { upload } from '@/middleware/storage.middleware';
 import * as lessonController from '@/controllers/lesson.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // Get lessons for a course
 router.get('/course/:courseId', lessonController.getLessonsByCourse);

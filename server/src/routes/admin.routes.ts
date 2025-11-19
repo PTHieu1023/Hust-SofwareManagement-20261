@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '@/middleware/auth';
+import { authorize } from '@/middleware/auth.middleware';
 import * as adminController from '@/controllers/admin.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // All routes require admin authentication
-router.use(authenticate, authorize('ADMIN'));
+router.use(authorize('ADMIN'));
 
 // User management
 router.get('/users', adminController.getAllUsers);

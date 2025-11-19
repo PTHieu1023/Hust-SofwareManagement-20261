@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { authenticate, authorize } from '@/middleware/auth';
-import { validate } from '@/middleware/validate';
+import { authenticate, authorize } from '@/middleware/auth.middleware';
+import { validate } from '@/middleware/validation.middleware';
 import * as quizController from '@/controllers/quiz.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // Get quizzes for a course
 router.get('/course/:courseId', authenticate, quizController.getQuizzesByCourse);

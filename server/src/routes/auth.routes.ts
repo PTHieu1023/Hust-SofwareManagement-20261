@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { validate } from '@/middleware/validate';
+import { validate } from '@/middleware/validation.middleware';
 import * as authController from '@/controllers/auth.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // Register
 router.post(

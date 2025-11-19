@@ -1,19 +1,17 @@
-import { Response } from 'express';
-import { AuthRequest } from '@/middleware/auth';
-
-export const markLessonComplete = async (req: AuthRequest, res: Response) => {
+import { NextFunction, Response } from 'express';
+import { AuthRequest } from '@/middleware/auth.middleware';
+    
+export const markLessonComplete = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
     // TODO: Implement markLessonComplete controller
+    return res.status(501).json({ message: 'Not implemented' });
 };
-
-export const getCourseProgress = async (req: AuthRequest, res: Response) => {
+    
+export const getCourseProgress = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
     // TODO: Implement getCourseProgress controller
+    return res.status(501).json({ message: 'Not implemented' });
 };
-
-export const getMyProgress = async (req: AuthRequest, res: Response) => {
+    
+export const getMyProgress = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
     // TODO: Implement getMyProgress controller
+    return res.status(501).json({ message: 'Not implemented' });
 };
-
-// Helper function to update enrollment progress
-async function updateEnrollmentProgress(studentId: string, courseId: string) {
-    // TODO: Implement updateEnrollmentProgress helper function
-}

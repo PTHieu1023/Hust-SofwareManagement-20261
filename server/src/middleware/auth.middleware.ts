@@ -24,9 +24,10 @@ export const authenticate = (req: AuthRequest, _res: Response, next: NextFunctio
 export const authorize = (...roles: string[]) => {
     return (req: AuthRequest, _: Response, next: NextFunction) => {
         try {
-            if (roles.length === 0)
-                return next();
             extractToken(req);
+            if (roles.length === 0) {
+                return next();
+            }
             const role = req.user?.role;
             if (role && !roles.includes(role)) 
                 throw createHttpError(403, 'Insufficient permissions');

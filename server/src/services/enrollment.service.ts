@@ -10,7 +10,7 @@ export class EnrollmentService {
      * @param courseId - Course ID
      * @returns Promise<Enrollment>
      */
-    async enrollInCourse(studentId: string, courseId: string): Promise<Enrollment> {
+    async enrollInCourse(_studentId: string, _courseId: string): Promise<Enrollment> {
         // TODO: Implement enrollment
         throw new Error('Not implemented');
     }
@@ -22,7 +22,7 @@ export class EnrollmentService {
      * @param studentId - Student user ID
      * @returns Promise<Enrollment[]>
      */
-    async getStudentEnrollments(studentId: string): Promise<Enrollment[]> {
+    async getStudentEnrollments(_studentId: string): Promise<Enrollment[]> {
         // TODO: Implement get student enrollments
         throw new Error('Not implemented');
     }
@@ -35,7 +35,7 @@ export class EnrollmentService {
      * @param teacherId - Teacher user ID
      * @returns Promise<Enrollment[]>
      */
-    async getCourseEnrollments(courseId: string, teacherId: string): Promise<Enrollment[]> {
+    async getCourseEnrollments(_courseId: string, _teacherId: string): Promise<Enrollment[]> {
         // TODO: Implement get course enrollments
         throw new Error('Not implemented');
     }
@@ -48,7 +48,7 @@ export class EnrollmentService {
      * @param courseId - Course ID
      * @returns Promise<void>
      */
-    async unenrollFromCourse(studentId: string, courseId: string): Promise<void> {
+    async unenrollFromCourse(_studentId: string, _courseId: string): Promise<void> {
         // TODO: Implement unenrollment
         throw new Error('Not implemented');
     }

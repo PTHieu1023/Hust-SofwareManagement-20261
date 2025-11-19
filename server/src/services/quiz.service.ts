@@ -8,7 +8,7 @@ export class QuizService {
      * @param courseId - Course ID
      * @returns Promise<Quiz[]>
      */
-    async getQuizzesByCourse(courseId: string): Promise<Quiz[]> {
+    async getQuizzesByCourse(_courseId: string): Promise<Quiz[]> {
         // TODO: Implement get quizzes by course
         throw new Error('Not implemented');
     }
@@ -21,7 +21,7 @@ export class QuizService {
      * @param userRole - User role (to determine if show answers)
      * @returns Promise<Quiz | null>
      */
-    async getQuizById(quizId: string, userRole: string): Promise<Quiz | null> {
+    async getQuizById(_quizId: string, _userRole: string): Promise<Quiz | null> {
         // TODO: Implement get quiz by id
         throw new Error('Not implemented');
     }
@@ -35,8 +35,8 @@ export class QuizService {
      * @returns Promise<Quiz>
      */
     async createQuiz(
-        teacherId: string,
-        data: {
+        _teacherId: string,
+        _data: {
             title: string;
             description?: string;
             courseId: string;
@@ -59,9 +59,9 @@ export class QuizService {
      * @returns Promise<Quiz>
      */
     async updateQuiz(
-        quizId: string,
-        teacherId: string,
-        data: Partial<Quiz>
+        _quizId: string,
+        _teacherId: string,
+        _data: Partial<Quiz>
     ): Promise<Quiz> {
         // TODO: Implement quiz update
         throw new Error('Not implemented');
@@ -75,7 +75,7 @@ export class QuizService {
      * @param teacherId - Teacher user ID
      * @returns Promise<void>
      */
-    async deleteQuiz(quizId: string, teacherId: string): Promise<void> {
+    async deleteQuiz(_quizId: string, _teacherId: string): Promise<void> {
         // TODO: Implement quiz deletion
         throw new Error('Not implemented');
     }
@@ -90,9 +90,9 @@ export class QuizService {
      * @returns Promise<Question>
      */
     async addQuestion(
-        quizId: string,
-        teacherId: string,
-        data: {
+        _quizId: string,
+        _teacherId: string,
+        _data: {
             question: string;
             type: string;
             points: number;
@@ -116,9 +116,9 @@ export class QuizService {
      * @returns Promise<QuizAttempt>
      */
     async submitQuiz(
-        quizId: string,
-        studentId: string,
-        data: { answers: Record<string, string>; timeSpent?: number }
+        _quizId: string,
+        _studentId: string,
+        _data: { answers: Record<string, string>; timeSpent?: number }
     ): Promise<QuizAttempt> {
         // TODO: Implement quiz submission and auto-grading
         throw new Error('Not implemented');

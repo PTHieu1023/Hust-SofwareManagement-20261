@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '@/middleware/auth';
+import { authenticate, authorize } from '@/middleware/auth.middleware';
 import * as progressController from '@/controllers/progress.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // All routes require authentication
 router.use(authenticate);

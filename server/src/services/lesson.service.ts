@@ -8,7 +8,7 @@ export class LessonService {
      * @param courseId - Course ID
      * @returns Promise<Lesson[]>
      */
-    async getLessonsByCourse(courseId: string): Promise<Lesson[]> {
+    async getLessonsByCourse(_courseId: string): Promise<Lesson[]> {
         // TODO: Implement get lessons by course
         throw new Error('Not implemented');
     }
@@ -19,7 +19,7 @@ export class LessonService {
      * @param lessonId - Lesson ID
      * @returns Promise<Lesson | null>
      */
-    async getLessonById(lessonId: string): Promise<Lesson | null> {
+    async getLessonById(_lessonId: string): Promise<Lesson | null> {
         // TODO: Implement get lesson by id
         throw new Error('Not implemented');
     }
@@ -34,8 +34,8 @@ export class LessonService {
      * @returns Promise<Lesson>
      */
     async createLesson(
-        teacherId: string,
-        data: {
+        _teacherId: string,
+        _data: {
             title: string;
             description?: string;
             type: string;
@@ -60,9 +60,9 @@ export class LessonService {
      * @returns Promise<Lesson>
      */
     async updateLesson(
-        lessonId: string,
-        teacherId: string,
-        data: Partial<Lesson>
+        _lessonId: string,
+        _teacherId: string,
+        _data: Partial<Lesson>
     ): Promise<Lesson> {
         // TODO: Implement lesson update
         throw new Error('Not implemented');
@@ -76,7 +76,7 @@ export class LessonService {
      * @param teacherId - Teacher user ID
      * @returns Promise<void>
      */
-    async deleteLesson(lessonId: string, teacherId: string): Promise<void> {
+    async deleteLesson(_lessonId: string, _teacherId: string): Promise<void> {
         // TODO: Implement lesson deletion
         throw new Error('Not implemented');
     }

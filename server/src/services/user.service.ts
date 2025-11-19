@@ -8,7 +8,7 @@ export class UserService {
      * @param userId - User ID
      * @returns Promise<User | null>
      */
-    async getUserById(userId: string): Promise<Omit<User, 'password'> | null> {
+    async getUserById(_userId: string): Promise<Omit<User, 'password'> | null> {
         // TODO: Implement get user by id
         throw new Error('Not implemented');
     }
@@ -22,8 +22,8 @@ export class UserService {
      * @returns Promise<User>
      */
     async updateProfile(
-        userId: string,
-        data: { fullName?: string; avatar?: string }
+        _userId: string,
+        _data: { fullName?: string; avatar?: string }
     ): Promise<Omit<User, 'password'>> {
         // TODO: Implement profile update
         throw new Error('Not implemented');

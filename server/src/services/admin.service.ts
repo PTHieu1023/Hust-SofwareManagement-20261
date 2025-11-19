@@ -9,7 +9,7 @@ export class AdminService {
      * @param filters - Query filters
      * @returns Promise<{ users: User[], pagination: any }>
      */
-    async getAllUsers(filters: {
+    async getAllUsers(_filters: {
         role?: string;
         search?: string;
         page?: number;
@@ -26,7 +26,7 @@ export class AdminService {
      * @param userId - User ID
      * @returns Promise<User>
      */
-    async banUser(userId: string): Promise<User> {
+    async banUser(_userId: string): Promise<User> {
         // TODO: Implement ban user
         throw new Error('Not implemented');
     }
@@ -38,7 +38,7 @@ export class AdminService {
      * @param userId - User ID
      * @returns Promise<User>
      */
-    async unbanUser(userId: string): Promise<User> {
+    async unbanUser(_userId: string): Promise<User> {
         // TODO: Implement unban user
         throw new Error('Not implemented');
     }
@@ -49,7 +49,7 @@ export class AdminService {
      * @param userId - User ID
      * @returns Promise<void>
      */
-    async deleteUser(userId: string): Promise<void> {
+    async deleteUser(_userId: string): Promise<void> {
         // TODO: Implement delete user
         throw new Error('Not implemented');
     }
@@ -61,7 +61,7 @@ export class AdminService {
      * @param filters - Query filters
      * @returns Promise<{ courses: Course[], pagination: any }>
      */
-    async getAllCourses(filters: {
+    async getAllCourses(_filters: {
         search?: string;
         page?: number;
         limit?: number;
@@ -76,7 +76,7 @@ export class AdminService {
      * @param courseId - Course ID
      * @returns Promise<void>
      */
-    async deleteCourse(courseId: string): Promise<void> {
+    async deleteCourse(_courseId: string): Promise<void> {
         // TODO: Implement delete course
         throw new Error('Not implemented');
     }

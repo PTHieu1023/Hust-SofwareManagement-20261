@@ -11,7 +11,7 @@ export class AuthService {
      * @param data - Registration data (email, username, password, fullName, role)
      * @returns Promise<{ user: User, token: string }>
      */
-    async register(data: {
+    async register(_data: {
         email: string;
         username: string;
         password: string;
@@ -33,8 +33,8 @@ export class AuthService {
      * @returns Promise<{ user: User, token: string }>
      */
     async login(
-        email: string,
-        password: string
+        _email: string,
+        _password: string
     ): Promise<{ user: Omit<User, 'password'>; token: string }> {
         // TODO: Implement login logic
         throw new Error('Not implemented');
@@ -47,7 +47,7 @@ export class AuthService {
      * @param user - User data
      * @returns string - JWT token
      */
-    generateToken(user: { id: string; email: string; role: string }): string {
+    generateToken(_user: { id: string; email: string; role: string }): string {
         // TODO: Implement token generation
         throw new Error('Not implemented');
     }
@@ -59,7 +59,7 @@ export class AuthService {
      * @param token - JWT token
      * @returns decoded token data
      */
-    verifyToken(token: string): { id: string; email: string; role: string } {
+    verifyToken(_token: string): { id: string; email: string; role: string } {
         // TODO: Implement token verification
         throw new Error('Not implemented');
     }

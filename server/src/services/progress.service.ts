@@ -10,7 +10,7 @@ export class ProgressService {
      * @param lessonId - Lesson ID
      * @returns Promise<Progress>
      */
-    async markLessonComplete(studentId: string, lessonId: string): Promise<Progress> {
+    async markLessonComplete(_studentId: string, _lessonId: string): Promise<Progress> {
         // TODO: Implement mark lesson complete
         throw new Error('Not implemented');
     }
@@ -24,8 +24,8 @@ export class ProgressService {
      * @returns Promise<{ progress: Progress[], overallProgress: number }>
      */
     async getCourseProgress(
-        studentId: string,
-        courseId: string
+        _studentId: string,
+        _courseId: string
     ): Promise<{ progress: Progress[]; overallProgress: number }> {
         // TODO: Implement get course progress
         throw new Error('Not implemented');
@@ -38,7 +38,7 @@ export class ProgressService {
      * @param studentId - Student user ID
      * @returns Promise<any[]>
      */
-    async getStudentProgress(studentId: string): Promise<any[]> {
+    async getStudentProgress(_studentId: string): Promise<any[]> {
         // TODO: Implement get student progress
         throw new Error('Not implemented');
     }
@@ -52,7 +52,7 @@ export class ProgressService {
      * @param courseId - Course ID
      * @returns Promise<void>
      */
-    async updateEnrollmentProgress(studentId: string, courseId: string): Promise<void> {
+    async updateEnrollmentProgress(_studentId: string, _courseId: string): Promise<void> {
         // TODO: Implement update enrollment progress
         throw new Error('Not implemented');
     }

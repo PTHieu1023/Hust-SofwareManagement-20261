@@ -9,7 +9,7 @@ export class CourseService {
      * @param filters - Course filters (category, level, search)
      * @returns Promise<Course[]>
      */
-    async getAllCourses(filters: {
+    async getAllCourses(_filters: {
         category?: string;
         level?: string;
         search?: string;
@@ -25,7 +25,7 @@ export class CourseService {
      * @param courseId - Course ID
      * @returns Promise<Course | null>
      */
-    async getCourseById(courseId: string): Promise<Course | null> {
+    async getCourseById(_courseId: string): Promise<Course | null> {
         // TODO: Implement get course by id
         throw new Error('Not implemented');
     }
@@ -40,8 +40,8 @@ export class CourseService {
      * @returns Promise<Course>
      */
     async createCourse(
-        teacherId: string,
-        data: {
+        _teacherId: string,
+        _data: {
             title: string;
             description?: string;
             category?: string;
@@ -63,9 +63,9 @@ export class CourseService {
      * @returns Promise<Course>
      */
     async updateCourse(
-        courseId: string,
-        teacherId: string,
-        data: {
+        _courseId: string,
+        _teacherId: string,
+        _data: {
             title?: string;
             description?: string;
             category?: string;
@@ -85,7 +85,7 @@ export class CourseService {
      * @param teacherId - Teacher user ID
      * @returns Promise<void>
      */
-    async deleteCourse(courseId: string, teacherId: string): Promise<void> {
+    async deleteCourse(_courseId: string, _teacherId: string): Promise<void> {
         // TODO: Implement course deletion
         throw new Error('Not implemented');
     }
@@ -98,7 +98,7 @@ export class CourseService {
      * @param teacherId - Teacher user ID
      * @returns Promise<Course>
      */
-    async togglePublish(courseId: string, teacherId: string): Promise<Course> {
+    async togglePublish(_courseId: string, _teacherId: string): Promise<Course> {
         // TODO: Implement publish toggle
         throw new Error('Not implemented');
     }

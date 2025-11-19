@@ -1,8 +1,8 @@
 import logger from '@/config/logger.config';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { isHttpError } from 'http-errors';
 
-export const errorHandler = (err: Error, req: Request, res: Response) => {
+export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
     logger.error('Error:', {
         message: err.message,
         stack: err.stack,

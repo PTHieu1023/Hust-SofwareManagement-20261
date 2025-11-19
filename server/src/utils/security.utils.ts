@@ -14,7 +14,7 @@ export const checkHash = async (
     return await bcrypt.compare(origin + Env.SECURITY_PEPPER, hashedValue);
 };
 
-export const encrytpData = (data: string): string => {
+export const encryptData = (data: string): string => {
     const cipher = crypto.createCipheriv(
         'aes-256-gcm',
         Buffer.from(Env.ENCRYPTION_KEY, 'hex'),

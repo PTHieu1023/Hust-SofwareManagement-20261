@@ -27,6 +27,7 @@ export const encryptData = (data: string): string => {
 }
 
 export const decryptData = (encryptedData: string): string => {
+
     if (typeof encryptedData !== 'string' || encryptedData.length < 32) {
         throw new Error('Invalid encrypted data: insufficient length for auth tag.');
     }

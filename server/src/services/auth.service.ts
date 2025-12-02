@@ -1,4 +1,10 @@
-import { User } from '@prisma/client';
+import { User, PrismaClient, UserRole } from '@prisma/client';
+// import { hashString } from '@/utils/security.utils';
+import * as SecurityUtils from '@/utils/security.utils';
+import * as JwtUtils from '@/utils/jwt.utils';
+import Env from '@/utils/env.utils';
+
+const prisma = new PrismaClient();
 
 /**
  * - Validate user input
@@ -9,15 +15,55 @@ import { User } from '@prisma/client';
  * @param data - Registration data (email, username, password, fullName, role)
  * @returns Promise<{ user: User, token: string }>
  */
-const register = async (_data: {
+const register = async (data: {
     email: string;
     username: string;
     password: string;
     fullName?: string;
-    role: string;
+    role: UserRole;
 }): Promise<{ user: Omit<User, 'password'>; token: string }> => {
     // TODO: Implement registration logic
-    throw new Error('Not implemented');
+    const { email, username, password, fullName, role } = data;
+
+    const existingUser = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { email: email },
+                { username: username }
+            ]
+        }
+    });
+
+    if (existingUser) {
+        throw new Error('Email or Username already exists');
+    }
+
+    const hashedPassword = await SecurityUtils.hashString(password);
+
+    const newUser = await prisma.user.create({
+        data: {
+            email,
+            username,
+            password: hashedPassword,
+            fullName,
+            role,
+        }
+    });
+
+    const payload = {
+        id: newUser.id,
+        email: newUser.email,
+        role: newUser.role
+    };
+
+    const token = JwtUtils.generateToken(payload, Env.JWT_EXPIRES_IN);
+
+    const { password: _, ...userWithoutPassword } = newUser;
+
+    return {
+        user: userWithoutPassword,
+        token
+    };
 }
 
 /**

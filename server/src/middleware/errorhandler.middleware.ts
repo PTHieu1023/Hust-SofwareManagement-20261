@@ -10,13 +10,21 @@ export const errorHandler = (err: Error, req: Request, res: Response) => {
         method: req.method,
     });
 
+    // Note: Do not expose detailed error messages to clients to prevent
+    // leaking sensitive information.
+    // Only expose them if you can ensure that the error is from the client side.
+    // This will be discussed in the group in the future.
     if(isHttpError(err)) {
-        return res.status(err.statusCode).json({
-            error: err.name,
-            path: req.path,
-            message: err.message,
-            time: new Date().toISOString(),
-        });
+        const statusCode = err.statusCode;
+        // Client errors (4xx) - Safe to expose detailed messages
+        if (statusCode >= 400 && statusCode < 500) {
+            return res.status(statusCode).json({
+                error: err.name,
+                path: req.path,
+                message: err.message,
+                time: new Date().toISOString(),
+            });
+        }
     }
 
     return res.status(500).json({

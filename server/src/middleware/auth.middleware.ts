@@ -29,7 +29,6 @@ export const authorize = (...roles: string[]) => {
             const role = req.user?.role;
             if (role && !roles.includes(role))
                 throw createHttpError(403, 'Insufficient permissions');
-            return next();
         } catch (error) {
             return next(error);
         }

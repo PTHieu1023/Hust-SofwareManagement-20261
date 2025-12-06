@@ -1,5 +1,5 @@
 import { Lesson } from '@prisma/client';
-
+import prisma from '@/config/prisma.config';
 
 /** ID
  * - Filter by published status
@@ -7,10 +7,20 @@ import { Lesson } from '@prisma/client';
  * @param courseId - Course ID
  * @returns Promise<Lesson[]>
  */
-const getLessonsByCourse = async (_courseId: string): Promise<Lesson[]> => {
-    // TODO: Implement get lessons by course
-    throw new Error('Not implemented');
-}
+// Get lessons of a course
+const getLessonsByCourse = async (courseId: string): Promise<Lesson[]> => {
+  const lessons = await prisma.lesson.findMany({
+    where: {
+      courseId,
+      isPublished: true,      // chỉ lấy lesson đã publish cho student
+    },
+    orderBy: {
+      order: 'asc',           // sắp xếp theo thứ tự bài
+    },
+  });
+
+  return lessons;
+};
 
 /**
  * - Include course information

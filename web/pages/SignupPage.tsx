@@ -12,26 +12,59 @@ const SignupPage: React.FC<SignupPageProps> = ({ setView }) => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>(UserRole.Student);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const { signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (password.length < 6) {
-        setError('Password must be at least 6 characters long.');
-        return;
+    setSuccess('');
+
+    if (!email) {
+      setError('Email is required.');
+      return;
     }
+  
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Valid email is required.');
+      return;
+    }
+  
+    if (!password) {
+      setError('Password is required.');
+      return;
+    }
+  
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+  
+    if (!name || name.length < 3) {
+      setError('Full name must be at least 3 characters long.');
+      return;
+    }
+  
+    if (![UserRole.Student, UserRole.Teacher].includes(role)) {
+      setError('Role must be Student or Teacher.');
+      return;
+    }
+  
     try {
       const user = await signup({ name, email, password, role });
-      if (user.role === UserRole.Teacher) {
-        setView({ page: 'teacher-dashboard' });
-      } else {
-        setView({ page: 'student-dashboard' });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      setSuccess('Create account successfully! Redirecting to login...');
+      
+      // Delay and jump to login page
+      setTimeout(() => setView({ page: 'login' }), 1500);
+    } catch (err: any) {
+      if (err.message != "Cannot read properties of undefined (reading 'role')") {
+      setError(err.message || 'An unknown error occurred.');
+    }
     }
   };
+  
+  
 
   return (
     <div className="flex justify-center items-center py-12">

@@ -1,5 +1,4 @@
 import { User, PrismaClient, UserRole } from '@prisma/client';
-// import { hashString } from '@/utils/security.utils';
 import * as SecurityUtils from '@/utils/security.utils';
 import * as JwtUtils from '@/utils/jwt.utils';
 import Env from '@/utils/env.utils';
@@ -76,11 +75,45 @@ const register = async (data: {
  * @returns Promise<{ user: User, token: string }>
  */
 const login = async (
-    _email: string,
-    _password: string
+    email: string,
+    password: string
 ): Promise<{ user: Omit<User, 'password'>; token: string }> => {
     // TODO: Implement login logic
-    throw new Error('Not implemented');
+    const user = await prisma.user.findUnique({
+        where: { email }
+    });
+
+    if (!user) {
+        throw new Error('Email or password is incorrect.');
+    }
+
+    if (user.isBanned) {
+        throw new Error('Account has been banned. Please contact the administrator.');
+    }
+
+    if (!user.isActive) {
+        throw new Error('Account has not been activated.');
+    }
+
+    const isPasswordValid = await SecurityUtils.checkHash(password, user.password);
+    if (!isPasswordValid) {
+        throw new Error('Email or password is incorrect.');
+    }
+
+    const payload = {
+        id: user.id,
+        email: user.email,
+        role: user.role
+    };
+
+    const token = JwtUtils.generateToken(payload, Env.JWT_EXPIRES_IN);
+
+    const { password: _, ...userWithoutPassword } = user;
+
+    return {
+        user: userWithoutPassword,
+        token
+    };
 }
 
 /**

@@ -128,7 +128,6 @@ const generateToken = (user: { id: string; email: string; role: string }): strin
         { id: user.id, email: user.email, role: user.role },
         Env.JWT_EXPIRES_IN
     );
-    // throw new Error('Not implemented');
 }
 
 /**
@@ -146,7 +145,6 @@ const verifyToken = (token: string): { id: string; email: string; role: string }
         email: decoded?.email,
         role: decoded?.role
     };
-    // throw new Error('Not implemented');
 }
 
 export default {

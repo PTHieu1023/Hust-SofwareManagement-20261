@@ -122,9 +122,13 @@ const login = async (
  * @param user - User data
  * @returns string - JWT token
  */
-const generateToken = (_user: { id: string; email: string; role: string }): string => {
+const generateToken = (user: { id: string; email: string; role: string }): string => {
     // TODO: Implement token generation
-    throw new Error('Not implemented');
+    return JwtUtils.generateToken(
+        { id: user.id, email: user.email, role: user.role },
+        Env.JWT_EXPIRES_IN
+    );
+    // throw new Error('Not implemented');
 }
 
 /**
@@ -133,9 +137,16 @@ const generateToken = (_user: { id: string; email: string; role: string }): stri
  * @param token - JWT token
  * @returns decoded token data
  */
-const verifyToken = (_token: string): { id: string; email: string; role: string } => {
+const verifyToken = (token: string): { id: string; email: string; role: string } => {
     // TODO: Implement token verification
-    throw new Error('Not implemented');
+    const decoded = JwtUtils.verifyToken(token);
+    
+    return {
+        id: decoded?.id,
+        email: decoded?.email,
+        role: decoded?.role
+    };
+    // throw new Error('Not implemented');
 }
 
 export default {

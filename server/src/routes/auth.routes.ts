@@ -14,6 +14,7 @@ router.post(
         body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
         body('fullName').optional().isString(),
         body('role').isIn(['STUDENT', 'TEACHER']).withMessage('Role must be STUDENT or TEACHER'),
+        body('avatar').optional().isString().withMessage('Avatar must be a string URL'),
         validate,
     ],
     authController.register

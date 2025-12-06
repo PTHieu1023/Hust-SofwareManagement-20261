@@ -5,6 +5,20 @@ import Env from '@/utils/env.utils';
 
 const prisma = new PrismaClient();
 
+const AVATAR_COLORS = [
+    'F44336', // Red
+    'E91E63', // Pink
+    '9C27B0', // Purple
+    '673AB7', // Deep Purple
+    '3F51B5', // Indigo
+    '2196F3', // Blue
+    '03A9F4', // Light Blue (đậm vừa đủ)
+    '009688', // Teal
+    '4CAF50', // Green
+    'FF9800', // Orange
+    'FF5722', // Deep Orange
+];
+
 /**
  * - Validate user input
  * - Check if email/username already exists
@@ -20,9 +34,10 @@ const register = async (data: {
     password: string;
     fullName?: string;
     role: UserRole;
+    avatar?: string;
 }): Promise<{ user: Omit<User, 'password'>; token: string }> => {
     // TODO: Implement registration logic
-    const { email, username, password, fullName, role } = data;
+    const { email, username, password, fullName, role , avatar} = data;
 
     const existingUser = await prisma.user.findFirst({
         where: {
@@ -39,6 +54,13 @@ const register = async (data: {
 
     const hashedPassword = await SecurityUtils.hashString(password);
 
+    let finalAvatar = avatar;
+    if (!finalAvatar){
+        const randomColor = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+        const initial = username.substring(0, 2);
+        finalAvatar = avatar || `https://ui-avatars.com/api/?name=${initial}&background=${randomColor}&color=fff`;
+    }
+
     const newUser = await prisma.user.create({
         data: {
             email,
@@ -46,6 +68,7 @@ const register = async (data: {
             password: hashedPassword,
             fullName,
             role,
+            avatar: finalAvatar,
         }
     });
 

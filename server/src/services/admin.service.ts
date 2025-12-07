@@ -1,11 +1,12 @@
 import { User, Course } from '@prisma/client';
+import prisma from '@/config/prisma.config';
 
 /**
  * - Support filtering by role
  * - Support search by email/username/fullName
  * - Include user statistics
- * @param filters - Query filters
  * @returns Promise<{ users: User[], pagination: any }>
+ * @param _filters
  */
 const getAllUsers = async (_filters: {
     role?: string;
@@ -13,8 +14,68 @@ const getAllUsers = async (_filters: {
     page?: number;
     limit?: number;
 }): Promise<{ users: User[]; pagination: any }> => {
-    // TODO: Implement get all users
-    throw new Error('Not implemented');
+    const { role, search, page = 1, limit = 10 } = _filters;
+
+    // Build where clause
+    const where: any = {};
+
+    // Filter by role
+    if (role) {
+        where.role = role;
+    }
+
+    // Search by email/username/fullName
+    if (search) {
+        where.OR = [
+            { email: { contains: search, mode: 'insensitive' } },
+            { username: { contains: search, mode: 'insensitive' } },
+            { fullName: { contains: search, mode: 'insensitive' } },
+        ];
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const total = await prisma.user.count({ where });
+
+    // Get users with pagination
+    const users = await prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+            id: true,
+            email: true,
+            username: true,
+            fullName: true,
+            role: true,
+            isActive: true,
+            isBanned: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: {
+                select: {
+                    coursesCreated: true,
+                    enrollments: true,
+                },
+            },
+        },
+    });
+
+    // Calculate total pages
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+        users: users as any,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages,
+        },
+    };
 }
 
 /**

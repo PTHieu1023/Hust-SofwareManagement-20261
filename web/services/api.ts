@@ -17,8 +17,22 @@ const client = axios.create({
 
 // --- AUTH ---
 const login = async ({ email, password }: Credentials): Promise<User> => {
-  const res = await client.post("/auth/login", { email, password });
-  return res.data.user;
+  try {
+    const res = await client.post("/auth/login", { email, password });
+
+    if (!res.data?.data?.user) {
+      throw new Error("Invalid login response from server.");
+    }
+
+    return res.data.data.user;
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Login failed";
+
+    throw new Error(message);
+  }
 };
 
 const signup = async (userData: {
@@ -46,8 +60,6 @@ const signup = async (userData: {
 
   return res.data.data.user;
 };
-
-
 
 const logout = async () => {
   await client.post("/auth/logout");

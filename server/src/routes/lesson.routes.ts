@@ -8,7 +8,8 @@ import * as lessonController from '@/controllers/lesson.controller';
 const router: Router = Router();
 
 // Get lessons for a course
-router.get('/course/:courseId', 
+router.get(
+    '/course/:courseId', 
     [
     param('courseId').isString().notEmpty().withMessage('courseId is required'),
     validate,
@@ -16,11 +17,26 @@ router.get('/course/:courseId',
     lessonController.getLessonsForStudentByCourse
 );
 
-// Get single lesson
-router.get('/:id', lessonController.getLessonById);
-
-// Protected routes (require authentication)
+/**
+ * Protected routes (require authentication)
+ * From here on, user must be logged in.
+ */
 router.use(authenticate);
+
+// Get lesson detail (view content)
+// Used by students to watch a lesson (video/PDF/text)
+router.get(
+    '/:id',
+    authorize('STUDENT'),
+    [
+        param('id')
+        .isString()
+        .notEmpty()
+        .withMessage('lesson id is required'),
+        validate,
+    ],
+    lessonController.getLessonDetailForStudent
+);
 
 // Teacher-only routes
 router.post(

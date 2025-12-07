@@ -28,13 +28,13 @@ const signup = async (userData: {
   role: UserRole;
 }): Promise<User> => {
   // Log the payload
-  console.log('Signing up with payload:', {
-    email: userData.email,
-    username: userData.email,
-    password: userData.password,
-    fullName: userData.name,
-    role: userData.role.toUpperCase(),
-  });
+  // console.log('Signing up with payload:', {
+  //   email: userData.email,
+  //   username: userData.email,
+  //   password: userData.password,
+  //   fullName: userData.name,
+  //   role: userData.role.toUpperCase(),
+  // });
 
   const res = await client.post("/auth/register", {
     email: userData.email,
@@ -44,7 +44,7 @@ const signup = async (userData: {
     role: userData.role.toUpperCase(),
   });
 
-  return res.data.user;
+  return res.data.data.user;
 };
 
 

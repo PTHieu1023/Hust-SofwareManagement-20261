@@ -115,9 +115,26 @@ export const getAllCourses = async (req: AuthRequest, res: Response, next: NextF
     }
 };
 
-export const deleteCourse = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
-    // TODO: Implement deleteCourse controller
-    return res.status(501).json({ message: 'Not implemented' });
+export const deleteCourse = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Course ID is required',
+            });
+        }
+
+        await adminService.deleteCourse(id);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Course deleted successfully',
+        });
+    } catch (error) {
+        return next(error);
+    }
 };
 
 export const getStatistics = async (_req: AuthRequest, res: Response, next: NextFunction) => {

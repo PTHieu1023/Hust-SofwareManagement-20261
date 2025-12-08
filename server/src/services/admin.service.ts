@@ -259,9 +259,20 @@ const getAllCourses = async (_filters: {
  * @param courseId - Course ID
  * @returns Promise<void>
  */
-const deleteCourse = async (_courseId: string): Promise<void> => {
-    // TODO: Implement delete course
-    throw new Error('Not implemented');
+const deleteCourse = async (courseId: string): Promise<void> => {
+    // Check if course exists
+    const course = await prisma.course.findUnique({
+        where: { id: courseId },
+    });
+
+    if (!course) {
+        throw new Error('Course not found');
+    }
+
+    // Delete course (Prisma will handle cascade deletion based on schema)
+    await prisma.course.delete({
+        where: { id: courseId },
+    });
 };
 
 /**

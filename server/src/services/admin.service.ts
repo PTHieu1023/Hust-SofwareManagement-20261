@@ -127,9 +127,31 @@ const banUser = async (userId: string): Promise<User> => {
  * @param userId - User ID
  * @returns Promise<User>
  */
-const unbanUser = async (_userId: string): Promise<User> => {
-    // TODO: Implement unban user
-    throw new Error('Not implemented');
+const unbanUser = async (userId: string): Promise<User> => {
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+    });
+
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    // Check if user is not banned
+    if (!user.isBanned) {
+        throw new Error('User is not banned');
+    }
+
+    // Unban user
+    const unbannedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+            isBanned: false,
+            isActive: true,
+        },
+    });
+
+    return unbannedUser;
 };
 
 /**

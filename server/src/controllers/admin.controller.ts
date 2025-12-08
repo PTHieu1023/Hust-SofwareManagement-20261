@@ -48,9 +48,27 @@ export const banUser = async (req: AuthRequest, res: Response, next: NextFunctio
     }
 };
 
-export const unbanUser = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
-    // TODO: Implement unbanUser controller
-    return res.status(501).json({ message: 'Not implemented' });
+export const unbanUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required',
+            });
+        }
+
+        const user = await adminService.unbanUser(id);
+
+        return res.status(200).json({
+            success: true,
+            message: 'User unbanned successfully',
+            data: user,
+        });
+    } catch (error) {
+        return next(error);
+    }
 };
 
 export const deleteUser = async (_req: AuthRequest, res: Response, _next: NextFunction) => {

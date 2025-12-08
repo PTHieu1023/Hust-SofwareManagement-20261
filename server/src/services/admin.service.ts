@@ -159,9 +159,25 @@ const unbanUser = async (userId: string): Promise<User> => {
  * @param userId - User ID
  * @returns Promise<void>
  */
-const deleteUser = async (_userId: string): Promise<void> => {
-    // TODO: Implement delete user
-    throw new Error('Not implemented');
+const deleteUser = async (userId: string): Promise<void> => {
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+    });
+
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    // Check if user is admin (cannot delete admin)
+    if (user.role === UserRole.ADMIN) {
+        throw new Error('Cannot delete admin user');
+    }
+
+    // Delete user (Prisma will handle cascade deletion based on schema)
+    await prisma.user.delete({
+        where: { id: userId },
+    });
 };
 
 /**

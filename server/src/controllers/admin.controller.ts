@@ -71,9 +71,26 @@ export const unbanUser = async (req: AuthRequest, res: Response, next: NextFunct
     }
 };
 
-export const deleteUser = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
-    // TODO: Implement deleteUser controller
-    return res.status(501).json({ message: 'Not implemented' });
+export const deleteUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required',
+            });
+        }
+
+        await adminService.deleteUser(id);
+
+        return res.status(200).json({
+            success: true,
+            message: 'User deleted successfully',
+        });
+    } catch (error) {
+        return next(error);
+    }
 };
 
 export const getAllCourses = async (req: AuthRequest, res: Response, next: NextFunction) => {

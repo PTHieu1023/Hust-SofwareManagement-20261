@@ -1,5 +1,5 @@
-import { User, Course, UserRole } from '@prisma/client';
 import prisma from '@/config/prisma.config';
+import { Course, User, UserRole } from '@prisma/client';
 
 /**
  * - Support filtering by role
@@ -89,9 +89,36 @@ const getAllUsers = async (_filters: {
  * @param userId - User ID
  * @returns Promise<User>
  */
-const banUser = async (_userId: string): Promise<User> => {
-    // TODO: Implement ban user
-    throw new Error('Not implemented');
+const banUser = async (userId: string): Promise<User> => {
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+    });
+
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    // Check if user is admin (cannot ban admin)
+    if (user.role === UserRole.ADMIN) {
+        throw new Error('Cannot ban admin user');
+    }
+
+    // Check if user is already banned
+    if (user.isBanned) {
+        throw new Error('User is already banned');
+    }
+
+    // Ban user
+    const bannedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+            isBanned: true,
+            isActive: false,
+        },
+    });
+
+    return bannedUser;
 };
 
 /**

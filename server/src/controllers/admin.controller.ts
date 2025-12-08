@@ -67,7 +67,15 @@ export const deleteCourse = async (_req: AuthRequest, res: Response, _next: Next
     return res.status(501).json({ message: 'Not implemented' });
 };
 
-export const getStatistics = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
-    // TODO: Implement getStatistics controller
-    return res.status(501).json({ message: 'Not implemented' });
+export const getStatistics = async (_req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const stats = await adminService.getStatistics();
+
+        return res.status(200).json({
+            success: true,
+            data: stats,
+        });
+    } catch (error) {
+        return next(error);
+    }
 };

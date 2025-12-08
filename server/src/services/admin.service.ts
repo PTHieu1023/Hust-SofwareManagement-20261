@@ -213,8 +213,94 @@ const deleteCourse = async (_courseId: string): Promise<void> => {
  * @returns Promise<any>
  */
 const getStatistics = async (): Promise<any> => {
-    // TODO: Implement get statistics
-    throw new Error('Not implemented');
+    // Get total counts
+    const [totalUsers, totalCourses, totalEnrollments] = await Promise.all([
+        prisma.user.count(),
+        prisma.course.count(),
+        prisma.enrollment.count(),
+    ]);
+
+    // Count users by role
+    const usersByRole = await prisma.user.groupBy({
+        by: ['role'],
+        _count: {
+            role: true,
+        },
+    });
+
+    const totalStudents = usersByRole.find(r => r.role === 'STUDENT')?._count.role || 0;
+    const totalTeachers = usersByRole.find(r => r.role === 'TEACHER')?._count.role || 0;
+    const totalAdmins = usersByRole.find(r => r.role === 'ADMIN')?._count.role || 0;
+
+    // Get recent enrollments (last 10)
+    const recentEnrollments = await prisma.enrollment.findMany({
+        take: 10,
+        orderBy: { enrolledAt: 'desc' },
+        select: {
+            id: true,
+            enrolledAt: true,
+            student: {
+                select: {
+                    id: true,
+                    username: true,
+                    fullName: true,
+                    email: true,
+                },
+            },
+            course: {
+                select: {
+                    id: true,
+                    title: true,
+                },
+            },
+        },
+    });
+
+    // Get popular courses (by enrollment count)
+    const popularCourses = await prisma.course.findMany({
+        take: 10,
+        orderBy: {
+            enrollments: {
+                _count: 'desc',
+            },
+        },
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            thumbnail: true,
+            category: true,
+            level: true,
+            isPublished: true,
+            teacher: {
+                select: {
+                    id: true,
+                    username: true,
+                    fullName: true,
+                },
+            },
+            _count: {
+                select: {
+                    enrollments: true,
+                    lessons: true,
+                    quizzes: true,
+                },
+            },
+        },
+    });
+
+    return {
+        overview: {
+            totalUsers,
+            totalStudents,
+            totalTeachers,
+            totalAdmins,
+            totalCourses,
+            totalEnrollments,
+        },
+        recentEnrollments,
+        popularCourses,
+    };
 }
 
 export default {

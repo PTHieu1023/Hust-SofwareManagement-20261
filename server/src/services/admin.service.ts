@@ -298,9 +298,9 @@ const getStatistics = async (): Promise<any> => {
         },
     });
 
-    const totalStudents = usersByRole.find((r) => r.role === 'STUDENT')?._count.role || 0;
-    const totalTeachers = usersByRole.find((r) => r.role === 'TEACHER')?._count.role || 0;
-    const totalAdmins = usersByRole.find((r) => r.role === 'ADMIN')?._count.role || 0;
+    const totalStudents = usersByRole.find((r: { role: UserRole }) => r.role === 'STUDENT')?._count.role || 0;
+    const totalTeachers = usersByRole.find((r: { role: UserRole }) => r.role === 'TEACHER')?._count.role || 0;
+    const totalAdmins = usersByRole.find((r: { role: UserRole }) => r.role === 'ADMIN')?._count.role || 0;
 
     // Get recent enrollments (last 10)
     const recentEnrollments = await prisma.enrollment.findMany({

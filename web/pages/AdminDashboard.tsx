@@ -130,8 +130,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({setView}) => {
                                 <th className="p-3">Title</th>
                                 <th className="p-3">Teacher</th>
                                 <th className="p-3">Category</th>
-                                <th className="p-3">Enrollments</th>
                                 <th className="p-3">Lessons</th>
+                                <th className="p-3">Quizzes</th>
+                                <th className="p-3">Students</th>
                                 <th className="p-3">Status</th>
                             </tr>
                             </thead>
@@ -141,8 +142,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({setView}) => {
                                     <td className="p-3">{c.title}</td>
                                     <td className="p-3">{c.teacher?.fullName || '-'}</td>
                                     <td className="p-3">{c.category || '-'}</td>
-                                    <td className="p-3">{c._count?.enrollments || 0}</td>
                                     <td className="p-3">{c._count?.lessons || 0}</td>
+                                    <td className="p-3">{c._count?.quizzes || 0}</td>
+                                    <td className="p-3">{c._count?.enrollments || 0}</td>
                                     <td className="p-3">
                       <span
                           className={`px-2 py-1 text-xs rounded ${c.isPublished ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>

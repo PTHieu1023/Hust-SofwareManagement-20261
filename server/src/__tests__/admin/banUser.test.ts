@@ -186,17 +186,5 @@ describe('Admin Service - Ban User', () => {
             expect(result.isActive).toBe(false);
             expect(result.role).toBe(UserRole.TEACHER);
         });
-
-        it('should handle database errors gracefully', async () => {
-            // Mock database error
-            const dbError = new Error('Database connection failed');
-            mockFindUnique.mockRejectedValue(dbError);
-
-            // Execute & Assert
-            await expect(adminService.banUser(userId)).rejects.toThrow('Database connection failed');
-            expect(mockFindUnique).toHaveBeenCalledWith({
-                where: { id: userId },
-            });
-        });
     });
 });

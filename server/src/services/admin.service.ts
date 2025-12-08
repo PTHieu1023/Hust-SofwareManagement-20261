@@ -119,7 +119,7 @@ const deleteUser = async (_userId: string): Promise<void> => {
 /**
  * - Support search
  * - Include teacher info and statistics
- * @param filters - Query filters
+ * @param _filters - Query filters
  * @returns Promise<{ courses: Course[], pagination: any }>
  */
 const getAllCourses = async (_filters: {
@@ -127,8 +127,72 @@ const getAllCourses = async (_filters: {
     page?: number;
     limit?: number;
 }): Promise<{ courses: Course[]; pagination: any }> => {
-    // TODO: Implement get all courses
-    throw new Error('Not implemented');
+    const { search, page = 1, limit = 10 } = _filters;
+
+    // Build where clause
+    const where: any = {};
+
+    // Search by title/description/category
+    if (search) {
+        where.OR = [
+            { title: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+            { category: { contains: search, mode: 'insensitive' } },
+        ];
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Get total count
+    const total = await prisma.course.count({ where });
+
+    // Get courses with pagination
+    const courses = await prisma.course.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            thumbnail: true,
+            category: true,
+            level: true,
+            isPublished: true,
+            createdAt: true,
+            updatedAt: true,
+            teacher: {
+                select: {
+                    id: true,
+                    username: true,
+                    fullName: true,
+                    email: true,
+                },
+            },
+            _count: {
+                select: {
+                    lessons: true,
+                    quizzes: true,
+                    enrollments: true,
+                },
+            },
+        },
+    });
+
+    // Calculate total pages
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+        courses: courses as any,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages,
+        },
+    };
 }
 
 /**

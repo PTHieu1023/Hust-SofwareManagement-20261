@@ -40,9 +40,26 @@ export const deleteUser = async (_req: AuthRequest, res: Response, _next: NextFu
     return res.status(501).json({ message: 'Not implemented' });
 };
 
-export const getAllCourses = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
-    // TODO: Implement getAllCourses controller
-    return res.status(501).json({ message: 'Not implemented' });
+export const getAllCourses = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { search, page, limit } = req.query;
+
+        const filters = {
+            search: search as string,
+            page: page ? parseInt(page as string, 10) : 1,
+            limit: limit ? parseInt(limit as string, 10) : 10,
+        };
+
+        const result = await adminService.getAllCourses(filters);
+
+        return res.status(200).json({
+            success: true,
+            data: result.courses,
+            pagination: result.pagination,
+        });
+    } catch (error) {
+        return next(error);
+    }
 };
 
 export const deleteCourse = async (_req: AuthRequest, res: Response, _next: NextFunction) => {

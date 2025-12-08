@@ -60,7 +60,6 @@ const getAllUsers = async (_filters: {
             isActive: true,
             isBanned: true,
             createdAt: true,
-            updatedAt: true,
             _count: {
                 select: {
                     coursesCreated: true,
@@ -82,7 +81,7 @@ const getAllUsers = async (_filters: {
             totalPages,
         },
     };
-}
+};
 
 /**
  * - Set isBanned to true
@@ -93,7 +92,7 @@ const getAllUsers = async (_filters: {
 const banUser = async (_userId: string): Promise<User> => {
     // TODO: Implement ban user
     throw new Error('Not implemented');
-}
+};
 
 /**
  * - Set isBanned to false
@@ -104,7 +103,7 @@ const banUser = async (_userId: string): Promise<User> => {
 const unbanUser = async (_userId: string): Promise<User> => {
     // TODO: Implement unban user
     throw new Error('Not implemented');
-}
+};
 
 /**
  * - Remove user and related data
@@ -114,7 +113,7 @@ const unbanUser = async (_userId: string): Promise<User> => {
 const deleteUser = async (_userId: string): Promise<void> => {
     // TODO: Implement delete user
     throw new Error('Not implemented');
-}
+};
 
 /**
  * - Support search
@@ -156,19 +155,14 @@ const getAllCourses = async (_filters: {
         select: {
             id: true,
             title: true,
-            description: true,
-            thumbnail: true,
             category: true,
             level: true,
             isPublished: true,
             createdAt: true,
-            updatedAt: true,
             teacher: {
                 select: {
                     id: true,
-                    username: true,
                     fullName: true,
-                    email: true,
                 },
             },
             _count: {
@@ -193,7 +187,7 @@ const getAllCourses = async (_filters: {
             totalPages,
         },
     };
-}
+};
 
 /**
  * - Remove course regardless of ownership
@@ -203,7 +197,7 @@ const getAllCourses = async (_filters: {
 const deleteCourse = async (_courseId: string): Promise<void> => {
     // TODO: Implement delete course
     throw new Error('Not implemented');
-}
+};
 
 /**
  * - Total users, students, teachers
@@ -228,9 +222,9 @@ const getStatistics = async (): Promise<any> => {
         },
     });
 
-    const totalStudents = usersByRole.find(r => r.role === 'STUDENT')?._count.role || 0;
-    const totalTeachers = usersByRole.find(r => r.role === 'TEACHER')?._count.role || 0;
-    const totalAdmins = usersByRole.find(r => r.role === 'ADMIN')?._count.role || 0;
+    const totalStudents = usersByRole.find((r) => r.role === 'STUDENT')?._count.role || 0;
+    const totalTeachers = usersByRole.find((r) => r.role === 'TEACHER')?._count.role || 0;
+    const totalAdmins = usersByRole.find((r) => r.role === 'ADMIN')?._count.role || 0;
 
     // Get recent enrollments (last 10)
     const recentEnrollments = await prisma.enrollment.findMany({
@@ -242,7 +236,6 @@ const getStatistics = async (): Promise<any> => {
             student: {
                 select: {
                     id: true,
-                    username: true,
                     fullName: true,
                     email: true,
                 },
@@ -267,15 +260,11 @@ const getStatistics = async (): Promise<any> => {
         select: {
             id: true,
             title: true,
-            description: true,
-            thumbnail: true,
             category: true,
-            level: true,
             isPublished: true,
             teacher: {
                 select: {
                     id: true,
-                    username: true,
                     fullName: true,
                 },
             },
@@ -301,7 +290,7 @@ const getStatistics = async (): Promise<any> => {
         recentEnrollments,
         popularCourses,
     };
-}
+};
 
 export default {
     getAllUsers,

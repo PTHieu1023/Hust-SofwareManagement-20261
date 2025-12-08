@@ -102,21 +102,91 @@ const getLessonDetailForStudent = async (
  * @param data - Lesson data
  * @returns Promise<Lesson>
  */
+
+const getLessonsForTeacherByCourse = async (courseId: string, teacherId: string): Promise<Lesson[]> => {
+  // 1. Kiểm tra Course tồn tại và Teacher là owner [cite: 43, 44]
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+  });
+
+  if (!course) {
+    throw new Error('Course not found')
+  }
+
+  if (course.teacherId !== teacherId) {
+    throw new Error('You are not allowed to manage this course');
+  }
+
+  // 2. Query lessons
+  const lessons = await prisma.lesson.findMany({
+    where: { courseId },
+    orderBy: { order: 'asc' }, // [cite: 49]
+  });
+
+  return lessons;
+};
 const createLesson = async (
-    _teacherId: string,
-    _data: {
-        title: string;
-        description?: string;
-        type: string;
-        courseId: string;
-        order: number;
-        content?: string;
-        contentUrl?: string;
-        duration?: number;
-    }
+  teacherId: string,
+  data: {
+    title: string;
+    description: string;
+    type: 'VIDEO' | 'PDF'
+    courseId: string;
+    order ?: number;
+    contentUrl ?: string;
+    duration?: number;
+    isPublished: boolean;
+  }
 ): Promise<Lesson> => {
-    // TODO: Implement lesson creation
-    throw new Error('Not implemented');
+  const course = await prisma.course.findUnique({
+    where: { id: data.courseId}
+  });
+  if (!course) throw new Error('Course not found');
+  if (course.teacherId !== teacherId){
+    throw new Error('You have not permission to access');
+  }
+  let newOrder: number;
+  if (data.order !== undefined && data.order !== null){
+    newOrder = data.order;
+    await prisma.lesson.updateMany({
+      where:{
+        courseId: data.courseId,
+        order:{
+          gte: newOrder,
+        },
+      },
+      data: {
+        order: {
+          increment: 1,
+        },
+      },
+    });
+
+  }
+   else{
+    const maxOrderLesson = await prisma.lesson.findFirst({
+      where: {
+        courseId: data.courseId
+      },
+      orderBy:{
+        order: 'desc'
+      },
+    });
+    newOrder = maxOrderLesson ? maxOrderLesson.order + 1 : 1;
+  }
+
+  return await prisma.lesson.create({
+    data: {
+      title: data.title,
+      description: data.description,
+      type: data.type,
+      contentUrl: data.contentUrl || '',
+      duration: data.duration || 0,
+      courseId: data.courseId,
+      order: newOrder, 
+      isPublished: data.isPublished,
+    }
+  })
 }
 
 /**
@@ -151,7 +221,9 @@ const deleteLesson = async (_lessonId: string, _teacherId: string): Promise<void
 export default {
     getLessonsByCourse,
     getLessonDetailForStudent,
+    getLessonsForTeacherByCourse,
     createLesson,
     updateLesson,
     deleteLesson,
+
 };

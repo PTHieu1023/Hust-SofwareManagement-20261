@@ -49,6 +49,7 @@ router.post(
         body('type').isIn(['VIDEO', 'PDF', 'TEXT']).withMessage('Invalid lesson type'),
         body('courseId').notEmpty().withMessage('Course ID is required'),
         body('order').isInt().withMessage('Order must be an integer'),
+        body('isPublished').notEmpty().withMessage('isPublished is required'),
         validate,
     ],
     lessonController.createLesson
@@ -58,6 +59,12 @@ router.put(
     '/:id',
     authorize('TEACHER', 'ADMIN'),
     upload.single('content'),
+    [
+        param('id').notEmpty(),
+        body('type').optional().isIn(['VIDEO', 'PDF']),
+        body('isPublished').optional().isBoolean().withMessage('isPublished must be boolean'),
+        validate
+    ],
     lessonController.updateLesson
 );
 

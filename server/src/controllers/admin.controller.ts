@@ -7,7 +7,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response, next: NextFun
         const { role, search, page, limit } = req.query;
 
         const filters = {
-            role: role as string,
+            role: role ? (role as string).toUpperCase() : undefined,
             search: search as string,
             page: page ? parseInt(page as string, 10) : 1,
             limit: limit ? parseInt(limit as string, 10) : 10,

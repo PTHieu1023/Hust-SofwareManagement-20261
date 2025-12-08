@@ -1,4 +1,4 @@
-import { User, Course } from '@prisma/client';
+import { User, Course, UserRole } from '@prisma/client';
 import prisma from '@/config/prisma.config';
 
 /**
@@ -19,8 +19,14 @@ const getAllUsers = async (_filters: {
     // Build where clause
     const where: any = {};
 
-    // Filter by role
+    // Filter by role - validate against Prisma enum
     if (role) {
+        const validRoles = Object.values(UserRole);
+
+        if (!validRoles.includes(role as UserRole)) {
+            throw new Error(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+        }
+
         where.role = role;
     }
 

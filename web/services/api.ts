@@ -1,5 +1,13 @@
 import axios from "axios";
-import { User, UserRole, Course } from "../types";
+import {
+  User,
+  UserRole,
+  Course,
+  UserForAdmin,
+  CourseForAdmin,
+  Pagination,
+  AdminStatistics
+} from "../types";
 
 export interface Credentials {
   email: string;
@@ -82,6 +90,89 @@ const getCourseById = async (id: string): Promise<Course> => {
   return res.data;
 };
 
+// --- ADMIN ---
+const getAllUsersForAdmin = async (): Promise<{ users: UserForAdmin[]; pagination: Pagination }> => {
+  try {
+    const res = await client.get("/admin/users");
+    // Server returns: { success: true, data: [...], pagination: {...} }
+    const users = res.data.data || [];
+    const pagination = res.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
+
+    // Map server response to frontend UserForAdmin type
+    const mappedUsers = users.map((u: any) => ({
+      id: u.id,
+      email: u.email,
+      fullName: u.fullName,
+      role: u.role as UserRole,
+      isActive: u.isActive,
+      isBanned: u.isBanned,
+      createdAt: u.createdAt,
+      _count: {
+        coursesCreated: u._count?.coursesCreated || 0,
+        enrollments: u._count?.enrollments || 0,
+      },
+    }));
+
+    return { users: mappedUsers, pagination };
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to fetch users";
+    throw new Error(message);
+  }
+};
+
+const getAllCoursesForAdmin = async (): Promise<{ courses: CourseForAdmin[]; pagination: Pagination }> => {
+  try {
+    const res = await client.get("/admin/courses");
+    // Server returns: { success: true, data: [...], pagination: {...} }
+    const courses = res.data.data || [];
+    const pagination = res.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
+
+    // Map server response to frontend CourseForAdmin type
+    const mappedCourses = courses.map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      category: c.category,
+      level: c.level,
+      isPublished: c.isPublished,
+      createdAt: c.createdAt,
+      teacher: {
+        id: c.teacher.id,
+        fullName: c.teacher.fullName,
+      },
+      _count: {
+        lessons: c._count?.lessons || 0,
+        quizzes: c._count?.quizzes || 0,
+        enrollments: c._count?.enrollments || 0,
+      },
+    }));
+
+    return { courses: mappedCourses, pagination };
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to fetch courses";
+    throw new Error(message);
+  }
+};
+
+const getStatisticsForAdmin = async (): Promise<AdminStatistics> => {
+  try {
+    const res = await client.get("/admin/stats");
+    // Server returns: { success: true, data: { overview, recentEnrollments, popularCourses } }
+    return res.data.data;
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to fetch statistics";
+    throw new Error(message);
+  }
+};
+
 export const api = {
   login,
   signup,
@@ -89,4 +180,7 @@ export const api = {
   getAllUsers,
   getCourses,
   getCourseById,
+  getAllUsersForAdmin,
+  getAllCoursesForAdmin,
+  getStatisticsForAdmin,
 };

@@ -21,6 +21,7 @@
         "noUnusedParameters": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
+        "types": ["jest", "node"],
         "baseUrl": ".",
         "paths": {
             "@/*": [

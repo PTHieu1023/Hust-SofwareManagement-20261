@@ -71,70 +71,62 @@ export const getLessonsForTeacher = async (req: AuthRequest, res: Response, _nex
         return _next(error);
     }
 };
-export const createLesson = async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    // TODO: Implement createLesson controller
+export const createLesson = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const teacherId = req.user!.id;
-        const { title, description, type, courseId, duration, order, isPublished } = req.body;
-        
-        // Xử lý file upload (nếu có)
-        // Note: Trong thực tế, req.file.path hoặc req.file.location (nếu dùng S3) sẽ là contentUrl
-        let contentUrl = '';
-        if (req.file) {
-            contentUrl = req.file.path.replace(/\\/g, "/"); // Giả sử middleware storage lưu path vào đây
-        } else if (req.body.contentUrl) {
-            // Trường hợp client upload file trước (Flow 2 bước trong spec )
-            contentUrl = req.body.contentUrl;
-        }
+        // Lấy contentUrl trực tiếp từ body (do FE đã upload trước và gửi xuống)
+        const { title, description, type, courseId, duration, order, contentUrl, isPublished } = req.body;
 
         const newLesson = await lessonService.createLesson(teacherId, {
+            courseId,
             title,
             description,
-            type: type as 'VIDEO' | 'PDF',
-            courseId,
-            order,
+            type,
             contentUrl,
-            duration: duration ? parseInt(duration) : undefined,
-            isPublished
+            duration: duration ? parseInt(duration) : 0,
+            order: order ? parseInt(order) : undefined,
+            isPublished: isPublished
         });
 
         return res.status(201).json(newLesson);
     } catch (error) {
-        return _next(error);
+        return next(error);
     }
 };
-    
-export const updateLesson = async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    // TODO: Implement updateLesson controller
+
+// 2. Update Lesson Content
+export const updateLessonContent = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
         const teacherId = req.user!.id;
-        const { title, description, type, duration, isPublished } = req.body;
+        const { title, description, type, duration, contentUrl } = req.body;
 
-        // Chuẩn bị data update
-        const updateData: any = {};
-        if (title) updateData.title = title;
-        if (description) updateData.description = description;
-        if (type) updateData.type = type;
-        if (duration) updateData.duration = parseInt(duration);
-        
-        // Xử lý file mới nếu có upload
-        if (req.file) {
-            updateData.contentUrl = req.file.path;
-        } else if (req.body.contentUrl) {
-            updateData.contentUrl = req.body.contentUrl;
-        }
+        const updatedLesson = await lessonService.updateLessonContent(id, teacherId, {
+            title,
+            description,
+            type,
+            contentUrl, // URL mới hoặc undefined
+            duration: duration ? parseInt(duration) : undefined
+            
+        });
 
-        // Xử lý Publish/Unpublish (UC-L07) [cite: 161]
-        // Lưu ý: client gửi string "true"/"false" hoặc boolean, cần parse cẩn thận
-        if (isPublished !== undefined) {
-             updateData.isPublished = isPublished === 'true' || isPublished === true;
-        }
-
-        const updatedLesson = await lessonService.updateLesson(id, teacherId, updateData);
         return res.status(200).json(updatedLesson);
     } catch (error) {
-        return _next(error);
+        return next(error);
+    }
+};
+
+// 3. Toggle Publish
+export const toggleLessonPublish = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const teacherId = req.user!.id;
+        const { isPublished } = req.body;
+
+        const result = await lessonService.updateLessonPublishStatus(id, teacherId, isPublished);
+        return res.status(200).json(result);
+    } catch (error) {
+        return next(error);
     }
 };
     

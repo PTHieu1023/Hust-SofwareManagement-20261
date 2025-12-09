@@ -33,7 +33,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({setView}) => {
             setCoursesPagination(coursesResult.pagination);
             setStatistics(statsData);
         } catch (error: any) {
-            console.error("Failed to fetch admin data:", error);
             setError(error.message || "Failed to load admin data");
         } finally {
             setLoading(false);
@@ -50,24 +49,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({setView}) => {
     }, [user]);
 
     const handleToggleBan = async (userId: string) => {
-        // await api.toggleUserBan(userId);
-        // await fetchData();
-        console.log("Not implemented: toggle ban for user", userId);
+        try {
+            const userToBan = users.find(u => u.id === userId);
+            if (!userToBan) return;
+
+            if (userToBan.isBanned) {
+                await api.unbanUserForAdmin(userId);
+            } else {
+                await api.banUserForAdmin(userId);
+            }
+
+            // Refresh data after action
+            await fetchData();
+        } catch (error: any) {
+            alert(error.message || "Failed to toggle ban status");
+        }
     };
 
     const handleDeleteUser = async (userId: string) => {
         if (window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
-            // await api.deleteUser(userId);
-            // await fetchData();
-            console.log("Not implemented: delete user", userId);
+            try {
+                await api.deleteUserForAdmin(userId);
+                // Refresh data after deletion
+                await fetchData();
+            } catch (error: any) {
+                alert(error.message || "Failed to delete user");
+            }
         }
     };
 
     const handleDeleteCourse = async (courseId: string) => {
         if (window.confirm("Are you sure you want to delete this course?")) {
-            // await api.deleteCourse(courseId);
-            // await fetchData();
-            console.log("Not implemented: delete course", courseId);
+            try {
+                await api.deleteCourseForAdmin(courseId);
+                // Refresh data after deletion
+                await fetchData();
+            } catch (error: any) {
+                alert(error.message || "Failed to delete course");
+            }
         }
     };
 

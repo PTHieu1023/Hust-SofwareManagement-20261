@@ -173,6 +173,54 @@ const getStatisticsForAdmin = async (): Promise<AdminStatistics> => {
   }
 };
 
+const banUserForAdmin = async (userId: string): Promise<void> => {
+  try {
+    await client.patch(`/admin/users/${userId}/ban`);
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to ban user";
+    throw new Error(message);
+  }
+};
+
+const unbanUserForAdmin = async (userId: string): Promise<void> => {
+  try {
+    await client.patch(`/admin/users/${userId}/unban`);
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to unban user";
+    throw new Error(message);
+  }
+};
+
+const deleteUserForAdmin = async (userId: string): Promise<void> => {
+  try {
+    await client.delete(`/admin/users/${userId}`);
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to delete user";
+    throw new Error(message);
+  }
+};
+
+const deleteCourseForAdmin = async (courseId: string): Promise<void> => {
+  try {
+    await client.delete(`/admin/courses/${courseId}`);
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to delete course";
+    throw new Error(message);
+  }
+};
+
 export const api = {
   login,
   signup,
@@ -183,4 +231,8 @@ export const api = {
   getAllUsersForAdmin,
   getAllCoursesForAdmin,
   getStatisticsForAdmin,
+  banUserForAdmin,
+  unbanUserForAdmin,
+  deleteUserForAdmin,
+  deleteCourseForAdmin,
 };

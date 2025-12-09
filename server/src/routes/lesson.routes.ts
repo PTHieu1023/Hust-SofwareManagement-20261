@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { authenticate, authorize } from '@/middleware/auth.middleware';
 import { validate } from '@/middleware/validation.middleware';
-import { upload } from '@/middleware/storage.middleware';
 import * as lessonController from '@/controllers/lesson.controller';
 
 const router: Router = Router();

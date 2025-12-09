@@ -1,83 +1,81 @@
 import prisma from '@/config/prisma.config';
-import { Course, User, UserRole } from '@prisma/client';
+import { Course, User, UserRole, Prisma } from '@prisma/client';
+import { UserFilters, PaginatedUsers } from '@/types';
 
 /**
+ * Get all users with filtering and pagination
  * - Support filtering by role
  * - Support search by email/username/fullName
  * - Include user statistics
- * @returns Promise<{ users: User[], pagination: any }>
- * @param _filters
  */
-const getAllUsers = async (_filters: {
-    role?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-}): Promise<{ users: User[]; pagination: any }> => {
-    const { role, search, page = 1, limit = 10 } = _filters;
+const getAllUsers = async (filters: UserFilters): Promise<PaginatedUsers> => {
+    const { role, search, page = 1, limit = 10 } = filters;
 
-    // Build where clause
-    const where: any = {};
+    // Validate pagination params
+    const validPage = Math.max(1, page);
+    const validLimit = Math.max(1, Math.min(limit, 100)); // Max 100 per page
 
-    // Filter by role - validate against Prisma enum
+    // Build where clause with proper Prisma type
+    const where: Prisma.UserWhereInput = {};
+
+    // Filter by role
     if (role) {
         const validRoles = Object.values(UserRole);
-
         if (!validRoles.includes(role as UserRole)) {
             throw new Error(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
         }
-
-        where.role = role;
+        where.role = role as UserRole;
     }
 
-    // Search by email/username/fullName
-    if (search) {
+    // Search by email/username/fullName (trim whitespace)
+    const trimmedSearch = search?.trim();
+    if (trimmedSearch) {
         where.OR = [
-            { email: { contains: search, mode: 'insensitive' } },
-            { username: { contains: search, mode: 'insensitive' } },
-            { fullName: { contains: search, mode: 'insensitive' } },
+            { email: { contains: trimmedSearch, mode: 'insensitive' } },
+            { username: { contains: trimmedSearch, mode: 'insensitive' } },
+            { fullName: { contains: trimmedSearch, mode: 'insensitive' } },
         ];
     }
 
     // Calculate pagination
-    const skip = (page - 1) * limit;
+    const skip = (validPage - 1) * validLimit;
 
-    // Get total count
-    const total = await prisma.user.count({ where });
-
-    // Get users with pagination
-    const users = await prisma.user.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        select: {
-            id: true,
-            email: true,
-            username: true,
-            fullName: true,
-            role: true,
-            isActive: true,
-            isBanned: true,
-            createdAt: true,
-            _count: {
-                select: {
-                    coursesCreated: true,
-                    enrollments: true,
+    // Query count and data in parallel for better performance
+    const [total, users] = await Promise.all([
+        prisma.user.count({ where }),
+        prisma.user.findMany({
+            where,
+            skip,
+            take: validLimit,
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                email: true,
+                username: true,
+                fullName: true,
+                role: true,
+                isActive: true,
+                isBanned: true,
+                createdAt: true,
+                _count: {
+                    select: {
+                        coursesCreated: true,
+                        enrollments: true,
+                    },
                 },
             },
-        },
-    });
+        }),
+    ]);
 
-    // Calculate total pages
-    const totalPages = Math.ceil(total / limit);
+    // Calculate total pages (handle edge case when limit = 0)
+    const totalPages = validLimit > 0 ? Math.ceil(total / validLimit) : 0;
 
     return {
-        users: users as any,
+        users,
         pagination: {
             total,
-            page,
-            limit,
+            page: validPage,
+            limit: validLimit,
             totalPages,
         },
     };

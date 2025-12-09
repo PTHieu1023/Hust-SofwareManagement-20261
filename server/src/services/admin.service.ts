@@ -1,6 +1,12 @@
 import prisma from '@/config/prisma.config';
-import { Course, User, UserRole, Prisma } from '@prisma/client';
-import { UserFilters, PaginatedUsers } from '@/types';
+import { User, UserRole, Prisma } from '@prisma/client';
+import {
+    UserFilters,
+    PaginatedUsers,
+    CourseFiltersAdmin,
+    PaginatedCourses,
+    AdminStatistics,
+} from '@/types';
 
 /**
  * Get all users with filtering and pagination
@@ -71,7 +77,7 @@ const getAllUsers = async (filters: UserFilters): Promise<PaginatedUsers> => {
     const totalPages = validLimit > 0 ? Math.ceil(total / validLimit) : 0;
 
     return {
-        users,
+        data: users,
         pagination: {
             total,
             page: validPage,
@@ -108,15 +114,13 @@ const banUser = async (userId: string): Promise<User> => {
     }
 
     // Ban user
-    const bannedUser = await prisma.user.update({
+    return await prisma.user.update({
         where: { id: userId },
         data: {
             isBanned: true,
             isActive: false,
         },
     });
-
-    return bannedUser;
 };
 
 /**
@@ -141,15 +145,13 @@ const unbanUser = async (userId: string): Promise<User> => {
     }
 
     // Unban user
-    const unbannedUser = await prisma.user.update({
+    return await prisma.user.update({
         where: { id: userId },
         data: {
             isBanned: false,
             isActive: true,
         },
     });
-
-    return unbannedUser;
 };
 
 /**
@@ -179,74 +181,74 @@ const deleteUser = async (userId: string): Promise<void> => {
 };
 
 /**
- * - Support search
+ * Get all courses with search and pagination
+ * - Support search by title/description/category
  * - Include teacher info and statistics
- * @param _filters - Query filters
- * @returns Promise<{ courses: Course[], pagination: any }>
  */
-const getAllCourses = async (_filters: {
-    search?: string;
-    page?: number;
-    limit?: number;
-}): Promise<{ courses: Course[]; pagination: any }> => {
-    const { search, page = 1, limit = 10 } = _filters;
+const getAllCourses = async (filters: CourseFiltersAdmin): Promise<PaginatedCourses> => {
+    const { search, page = 1, limit = 10 } = filters;
 
-    // Build where clause
-    const where: any = {};
+    // Validate pagination params
+    const validPage = Math.max(1, page);
+    const validLimit = Math.max(1, Math.min(limit, 100)); // Max 100 per page
 
-    // Search by title/description/category
-    if (search) {
+    // Build where clause with proper Prisma type
+    const where: Prisma.CourseWhereInput = {};
+
+    // Search by title/description/category (trim whitespace)
+    const trimmedSearch = search?.trim();
+    if (trimmedSearch) {
         where.OR = [
-            { title: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } },
-            { category: { contains: search, mode: 'insensitive' } },
+            { title: { contains: trimmedSearch, mode: 'insensitive' } },
+            { description: { contains: trimmedSearch, mode: 'insensitive' } },
+            { category: { contains: trimmedSearch, mode: 'insensitive' } },
         ];
     }
 
     // Calculate pagination
-    const skip = (page - 1) * limit;
+    const skip = (validPage - 1) * validLimit;
 
-    // Get total count
-    const total = await prisma.course.count({ where });
-
-    // Get courses with pagination
-    const courses = await prisma.course.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        select: {
-            id: true,
-            title: true,
-            category: true,
-            level: true,
-            isPublished: true,
-            createdAt: true,
-            teacher: {
-                select: {
-                    id: true,
-                    fullName: true,
+    // Query count and data in parallel for better performance
+    const [total, courses] = await Promise.all([
+        prisma.course.count({ where }),
+        prisma.course.findMany({
+            where,
+            skip,
+            take: validLimit,
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                title: true,
+                category: true,
+                level: true,
+                isPublished: true,
+                createdAt: true,
+                teacher: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        lessons: true,
+                        quizzes: true,
+                        enrollments: true,
+                    },
                 },
             },
-            _count: {
-                select: {
-                    lessons: true,
-                    quizzes: true,
-                    enrollments: true,
-                },
-            },
-        },
-    });
+        }),
+    ]);
 
-    // Calculate total pages
-    const totalPages = Math.ceil(total / limit);
+    // Calculate total pages (handle edge case when limit = 0)
+    const totalPages = validLimit > 0 ? Math.ceil(total / validLimit) : 0;
 
     return {
-        courses: courses as any,
+        data: courses,
         pagination: {
             total,
-            page,
-            limit,
+            page: validPage,
+            limit: validLimit,
             totalPages,
         },
     };
@@ -274,83 +276,84 @@ const deleteCourse = async (courseId: string): Promise<void> => {
 };
 
 /**
- * - Total users, students, teachers
- * - Total courses, enrollments
- * - Recent enrollments
- * - Popular courses
- * @returns Promise<any>
+ * Get admin dashboard statistics
+ * - Total users by role (students, teachers, admins)
+ * - Total courses and enrollments
+ * - Recent enrollments (last 10)
+ * - Popular courses (top 10 by enrollment count)
  */
-const getStatistics = async (): Promise<any> => {
-    // Get total counts
-    const [totalUsers, totalCourses, totalEnrollments] = await Promise.all([
+const getStatistics = async (): Promise<AdminStatistics> => {
+    // Get total counts in parallel for better performance
+    const [totalUsers, totalCourses, totalEnrollments, usersByRole] = await Promise.all([
         prisma.user.count(),
         prisma.course.count(),
         prisma.enrollment.count(),
+        prisma.user.groupBy({
+            by: ['role'],
+            _count: {
+                role: true,
+            },
+        }),
     ]);
 
-    // Count users by role
-    const usersByRole = await prisma.user.groupBy({
-        by: ['role'],
-        _count: {
-            role: true,
-        },
-    });
+    // Extract counts by role (with default 0 if not found)
+    const totalStudents = usersByRole.find((r) => r.role === UserRole.STUDENT)?._count.role || 0;
+    const totalTeachers = usersByRole.find((r) => r.role === UserRole.TEACHER)?._count.role || 0;
+    const totalAdmins = usersByRole.find((r) => r.role === UserRole.ADMIN)?._count.role || 0;
 
-    const totalStudents = usersByRole.find((r: { role: UserRole }) => r.role === 'STUDENT')?._count.role || 0;
-    const totalTeachers = usersByRole.find((r: { role: UserRole }) => r.role === 'TEACHER')?._count.role || 0;
-    const totalAdmins = usersByRole.find((r: { role: UserRole }) => r.role === 'ADMIN')?._count.role || 0;
-
-    // Get recent enrollments (last 10)
-    const recentEnrollments = await prisma.enrollment.findMany({
-        take: 10,
-        orderBy: { enrolledAt: 'desc' },
-        select: {
-            id: true,
-            enrolledAt: true,
-            student: {
-                select: {
-                    id: true,
-                    fullName: true,
-                    email: true,
+    // Get recent enrollments and popular courses in parallel
+    const [recentEnrollments, popularCourses] = await Promise.all([
+        // Recent enrollments (last 10)
+        prisma.enrollment.findMany({
+            take: 10,
+            orderBy: { enrolledAt: 'desc' },
+            select: {
+                id: true,
+                enrolledAt: true,
+                student: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        email: true,
+                    },
+                },
+                course: {
+                    select: {
+                        id: true,
+                        title: true,
+                    },
                 },
             },
-            course: {
-                select: {
-                    id: true,
-                    title: true,
+        }),
+        // Popular courses (top 10 by enrollment count)
+        prisma.course.findMany({
+            take: 10,
+            orderBy: {
+                enrollments: {
+                    _count: 'desc',
                 },
             },
-        },
-    });
-
-    // Get popular courses (by enrollment count)
-    const popularCourses = await prisma.course.findMany({
-        take: 10,
-        orderBy: {
-            enrollments: {
-                _count: 'desc',
-            },
-        },
-        select: {
-            id: true,
-            title: true,
-            category: true,
-            isPublished: true,
-            teacher: {
-                select: {
-                    id: true,
-                    fullName: true,
+            select: {
+                id: true,
+                title: true,
+                category: true,
+                isPublished: true,
+                teacher: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        enrollments: true,
+                        lessons: true,
+                        quizzes: true,
+                    },
                 },
             },
-            _count: {
-                select: {
-                    enrollments: true,
-                    lessons: true,
-                    quizzes: true,
-                },
-            },
-        },
-    });
+        }),
+    ]);
 
     return {
         overview: {

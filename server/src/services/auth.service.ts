@@ -100,7 +100,7 @@ const register = async (data: {
 const login = async (
     email: string,
     password: string
-): Promise<{ user: Omit<User, 'password'>; accessToken: string; refreshToken: string }> => {
+): Promise<{ user: Omit<User, 'password'>; token: string }> => {
     // TODO: Implement login logic
     const user = await prisma.user.findUnique({
         where: { email }
@@ -129,15 +129,13 @@ const login = async (
         role: user.role
     };
 
-    const accessToken = JwtUtils.generateToken(payload, Env.JWT_EXPIRES_IN);
-    const refreshToken = JwtUtils.generateRefreshToken({ id: user.id });
+    const token = JwtUtils.generateToken(payload, Env.JWT_EXPIRES_IN);
 
     const { password: _, ...userWithoutPassword } = user;
 
     return {
         user: userWithoutPassword,
-        accessToken,
-        refreshToken
+        token
     };
 }
 

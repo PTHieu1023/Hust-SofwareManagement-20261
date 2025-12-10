@@ -33,6 +33,7 @@ const markLessonComplete = async (studentId: string, lessonId: string): Promise<
         create: {
             studentId,
             lessonId,
+            courseId,
             completedAt: new Date(),
         }
     });
@@ -110,7 +111,7 @@ const getStudentProgress = async (studentId: string): Promise<any[]> => {
         courseTitle: e.course.title,
         courseThumbnail: e.course.thumbnail,
         overallProgress: e.progress,
-        isCompleted: e.completed,
+        isCompleted: e.completedAt,
     }));
     
     return studentProgressData;
@@ -133,7 +134,7 @@ const updateEnrollmentProgress = async (studentId: string, courseId: string): Pr
         // Không có bài học nào, coi như hoàn thành 100% nếu có Enrollment
         await prisma.enrollment.update({
             where: { studentId_courseId: { studentId, courseId } },
-            data: { progress: 100, completed: true },
+            data: { progress: 100, completedAt: new Date() },
         });
         return;
     }
@@ -155,7 +156,7 @@ const updateEnrollmentProgress = async (studentId: string, courseId: string): Pr
         where: { studentId_courseId: { studentId, courseId } },
         data: {
             progress: parseFloat(overallProgress.toFixed(2)), // Lưu 2 chữ số thập phân
-            completed: isCompleted,
+            completedAt: isCompleted ? new Date() : null,
         },
     });
 }

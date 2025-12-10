@@ -1,13 +1,11 @@
 import logger from '@/config/logger.config';
 import getRouter from '@/config/router.config';
-import swaggerSpec from '@/config/swagger.config';
 import { errorHandler, notFound } from '@/middleware/errorhandler.middleware';
 import { requestLogger } from '@/middleware/logger.middleware';
 import env from '@/utils/env.utils';
 
 import cors from 'cors';
 import express from 'express';
-import swaggerUi from 'swagger-ui-express';
 
 
 const bootstrap = async () => {
@@ -28,14 +26,6 @@ const bootstrap = async () => {
         app.get('/health', (_, res) => {
             res.json({ status: 'OK', timestamp: new Date().toISOString() });
         });
-
-        // Swagger UI
-        app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-            explorer: true,
-            customCss: '.swagger-ui .topbar { display: none }',
-            customSiteTitle: 'E-Learning API Docs',
-        }));
-        logger.info('[Finished] Swagger UI available at /api-docs');
 
         // Auto-register all API routes from the routes folder
         const router = await getRouter('/api');

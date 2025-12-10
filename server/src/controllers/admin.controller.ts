@@ -17,7 +17,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response, next: NextFun
 
         return res.status(200).json({
             success: true,
-            data: result.users,
+            data: result.data,
             pagination: result.pagination,
         });
     } catch (error) {
@@ -107,7 +107,7 @@ export const getAllCourses = async (req: AuthRequest, res: Response, next: NextF
 
         return res.status(200).json({
             success: true,
-            data: result.courses,
+            data: result.data,
             pagination: result.pagination,
         });
     } catch (error) {

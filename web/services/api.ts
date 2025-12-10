@@ -91,9 +91,25 @@ const getCourseById = async (id: string): Promise<Course> => {
 };
 
 // --- ADMIN ---
-const getAllUsersForAdmin = async (): Promise<{ users: UserForAdmin[]; pagination: Pagination }> => {
+/**
+ * Get all users for admin with pagination, search, and role filter
+ */
+const getAllUsersForAdmin = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+}): Promise<{ users: UserForAdmin[]; pagination: Pagination }> => {
   try {
-    const res = await client.get("/admin/users");
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.role) queryParams.append('role', params.role);
+
+    const url = `/admin/users${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const res = await client.get(url);
+
     // Server returns: { success: true, data: [...], pagination: {...} }
     const users = res.data.data || [];
     const pagination = res.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
@@ -123,9 +139,20 @@ const getAllUsersForAdmin = async (): Promise<{ users: UserForAdmin[]; paginatio
   }
 };
 
-const getAllCoursesForAdmin = async (): Promise<{ courses: CourseForAdmin[]; pagination: Pagination }> => {
+const getAllCoursesForAdmin = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}): Promise<{ courses: CourseForAdmin[]; pagination: Pagination }> => {
   try {
-    const res = await client.get("/admin/courses");
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
+
+    const url = `/admin/courses${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const res = await client.get(url);
+
     // Server returns: { success: true, data: [...], pagination: {...} }
     const courses = res.data.data || [];
     const pagination = res.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
@@ -173,6 +200,54 @@ const getStatisticsForAdmin = async (): Promise<AdminStatistics> => {
   }
 };
 
+const banUserForAdmin = async (userId: string): Promise<void> => {
+  try {
+    await client.patch(`/admin/users/${userId}/ban`);
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to ban user";
+    throw new Error(message);
+  }
+};
+
+const unbanUserForAdmin = async (userId: string): Promise<void> => {
+  try {
+    await client.patch(`/admin/users/${userId}/unban`);
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to unban user";
+    throw new Error(message);
+  }
+};
+
+const deleteUserForAdmin = async (userId: string): Promise<void> => {
+  try {
+    await client.delete(`/admin/users/${userId}`);
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to delete user";
+    throw new Error(message);
+  }
+};
+
+const deleteCourseForAdmin = async (courseId: string): Promise<void> => {
+  try {
+    await client.delete(`/admin/courses/${courseId}`);
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Failed to delete course";
+    throw new Error(message);
+  }
+};
+
 export const api = {
   login,
   signup,
@@ -183,4 +258,8 @@ export const api = {
   getAllUsersForAdmin,
   getAllCoursesForAdmin,
   getStatisticsForAdmin,
+  banUserForAdmin,
+  unbanUserForAdmin,
+  deleteUserForAdmin,
+  deleteCourseForAdmin,
 };

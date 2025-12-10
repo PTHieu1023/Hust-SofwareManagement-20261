@@ -57,6 +57,43 @@ export const getLessonDetailForStudent  = async (req: AuthRequest, res: Response
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+/**
+ * Teacher watches the list of lessons for a course they created
+ */
+export const getLessonsForTeacherByCourse = async (req: AuthRequest, res: Response, _next: NextFunction ) => {
+  try {
+    const { courseId } = req.params;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const lessons = await lessonService.getLessonsForTeacherByCourse(
+      courseId,
+      user.id,       // teacherId
+    );
+
+    return res.status(200).json(lessons);
+  } catch (error) {
+    console.error('getLessonsForTeacherByCourse error:', error);
+
+    if (error instanceof Error) {
+      if (error.message === 'COURSE_NOT_FOUND') {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+
+      if (error.message === 'FORBIDDEN_COURSE') {
+        return res
+          .status(403)
+          .json({ message: 'You are not allowed to manage lessons of this course' });
+      }
+    }
+
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
     
 
 

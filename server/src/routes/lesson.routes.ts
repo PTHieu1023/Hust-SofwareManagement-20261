@@ -28,16 +28,33 @@ router.get(
     '/:id',
     authorize('STUDENT'),
     [
-        param('id')
-        .isString()
-        .notEmpty()
-        .withMessage('lesson id is required'),
+        param('id').isString().notEmpty().withMessage('lesson id is required'),
         validate,
     ],
     lessonController.getLessonDetailForStudent
 );
 
 // Teacher-only routes
+
+/**
+ * Manage lessons for a course
+ * -> GET /api/lesson/teacher/course/:courseId
+ * - only TEACHER role
+ * - server-side checks:
+ *    + check course exists
+ *    + check course.teacherId === currentUser.id
+ *    + return all lessons (published/unpublished)
+ */
+router.get(
+  '/teacher/course/:courseId',
+  authorize('TEACHER'),
+  [
+    param('courseId').isString().notEmpty().withMessage('courseId is required'),
+    validate,
+  ],
+  lessonController.getLessonsForTeacherByCourse
+);
+
 router.post(
     '/',
     authorize('TEACHER', 'ADMIN'),

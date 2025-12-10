@@ -93,6 +93,37 @@ const getLessonDetailForStudent = async (
     nextLessonId: nextLesson?.id ?? null,
   };
 };
+/**
+ * Teacher watches the list of lessons for a course they created
+ * - Do not filter isPublished (see both published and draft)
+ * - Only allowed if course.teacherId === teacherId
+ */
+const getLessonsForTeacherByCourse = async (
+  courseId: string,
+  teacherId: string,
+): Promise<Lesson[]> => {
+  // 1. Check course exists
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+  });
+
+  if (!course) {
+    throw new Error('COURSE_NOT_FOUND');
+  }
+
+  // 2. Check permission: only the teacher who created the course can view
+  if (course.teacherId !== teacherId) {
+    throw new Error('FORBIDDEN_COURSE');
+  }
+
+  // 3. Take all lessons for the course (no isPublished filter)
+  const lessons = await prisma.lesson.findMany({
+    where: { courseId },
+    orderBy: { order: 'asc' },
+  });
+
+  return lessons;
+};
 
 /**
  * - Verify teacher owns the course

@@ -6,7 +6,10 @@ import {
   UserForAdmin,
   CourseForAdmin,
   Pagination,
-  AdminStatistics
+  AdminStatistics,
+  Lesson, 
+  CreateLessonPayload, 
+  UpdateLessonPayload
 } from "../types";
 
 export interface Credentials {
@@ -173,6 +176,57 @@ const getStatisticsForAdmin = async (): Promise<AdminStatistics> => {
   }
 };
 
+const uploadFile = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  // Giả định route upload mounted tại /api/uploads
+  const res = await client.post("/uploads", formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  // Giả định BE trả về { url: "..." }
+  return res.data.url; 
+};
+
+// 2. Lấy danh sách bài học
+const getLessonsByCourse = async (courseId: string): Promise<Lesson[]> => {
+  // Giả định route lessons mounted tại /api/lessons
+  const res = await client.get(`/lessons/course/${courseId}`);
+  return res.data;
+};
+
+// 3. Lấy chi tiết bài học
+const getLessonById = async (lessonId: string): Promise<Lesson> => {
+  const res = await client.get(`/lessons/${lessonId}`);
+  return res.data;
+};
+
+// 4. Tạo bài học
+const createLesson = async (data: CreateLessonPayload): Promise<Lesson> => {
+  const res = await client.post("/lessons", data);
+  return res.data;
+};
+
+// 5. Cập nhật bài học
+const updateLesson = async (id: string, data: UpdateLessonPayload): Promise<Lesson> => {
+  const res = await client.put(`/lessons/${id}`, data);
+  return res.data;
+};
+
+// 6. Publish/Unpublish
+const toggleLessonPublish = async (id: string, isPublished: boolean): Promise<Lesson> => {
+  const res = await client.patch(`/lessons/${id}/publish`, { isPublished });
+  return res.data;
+};
+
+// 7. Xóa bài học
+const deleteLesson = async (id: string): Promise<void> => {
+  await client.delete(`/lessons/${id}`);
+};
+
+
 export const api = {
   login,
   signup,
@@ -183,4 +237,11 @@ export const api = {
   getAllUsersForAdmin,
   getAllCoursesForAdmin,
   getStatisticsForAdmin,
+  getLessonsByCourse,
+  getLessonById,
+  createLesson,
+  updateLesson,
+  toggleLessonPublish,
+  deleteLesson,
+  uploadFile
 };

@@ -10,6 +10,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import QuizPage from './pages/QuizPage';
+import ManageLessonsPage from './pages/ManageLessonsPage';
 
 const App: React.FC = () => {
   return (
@@ -40,7 +41,9 @@ const Main: React.FC = () => {
       case 'admin-dashboard':
         return <AdminDashboard setView={setView} />;
       case 'quiz':
-         return <QuizPage setView={setView} courseId={view.courseId} lessonId={view.lessonId} quizId={view.quizId} />;
+        return <QuizPage setView={setView} courseId={view.courseId} lessonId={view.lessonId} quizId={view.quizId} />;
+      case 'manage-lessons':
+        return <ManageLessonsPage setView={setView} courseId={view.courseId} />;
       default:
         return <HomePage setView={setView} />;
     }

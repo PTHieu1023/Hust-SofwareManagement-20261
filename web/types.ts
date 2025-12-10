@@ -1,4 +1,5 @@
 
+export type LessonType = 'VIDEO' | 'PDF' | 'TEXT';
 export enum UserRole {
   Student = 'STUDENT',
   Teacher = 'TEACHER',
@@ -30,9 +31,35 @@ export interface Quiz {
 export interface Lesson {
   id: string;
   title: string;
-  type: 'video' | 'pdf';
-  content: string; // URL for video/pdf or markdown content
+  description?: string;    
+  type: LessonType;        
+  contentUrl: string;      
+  duration?: number;       
+  order: number;           
+  isPublished: boolean;    
+  courseId: string;        
+  createdAt?: string;
+  updatedAt?: string;
   quiz?: Quiz;
+}
+
+export interface CreateLessonPayload {
+  courseId: string;
+  title: string;
+  description?: string;
+  type: LessonType;
+  contentUrl: string;
+  duration?: number;
+  order?: number;
+}
+
+export interface UpdateLessonPayload {
+  title?: string;
+  description?: string;
+  type?: LessonType;
+  contentUrl?: string;
+  duration?: number;
+  isPublished?: boolean;
 }
 
 export interface Course {
@@ -154,6 +181,7 @@ export type View =
   | { page: 'signup' }
   | { page: 'course'; id: string }
   | { page: 'lesson'; courseId: string; lessonId: string }
+  | { page: 'manage-lessons'; courseId: string }
   | { page: 'quiz'; courseId: string; lessonId: string; quizId: string }
   | { page: 'student-dashboard' }
   | { page: 'teacher-dashboard' }

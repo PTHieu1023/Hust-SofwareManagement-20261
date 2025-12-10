@@ -134,28 +134,7 @@ const getLessonsForTeacherByCourse = async (
  * @returns Promise<Lesson>
  */
 
-const getLessonsForTeacherByCourse = async (courseId: string, teacherId: string): Promise<Lesson[]> => {
-  // 1. Kiểm tra Course tồn tại và Teacher là owner [cite: 43, 44]
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-  });
 
-  if (!course) {
-    throw new Error('Course not found')
-  }
-
-  if (course.teacherId !== teacherId) {
-    throw new Error('You are not allowed to manage this course');
-  }
-
-  // 2. Query lessons
-  const lessons = await prisma.lesson.findMany({
-    where: { courseId },
-    orderBy: { order: 'asc' }, // [cite: 49]
-  });
-
-  return lessons;
-};
 const validateLessonOwnership = async (lessonId: string, teacherId: string) => {
     const lesson = await prisma.lesson.findUnique({
         where: { id: lessonId },

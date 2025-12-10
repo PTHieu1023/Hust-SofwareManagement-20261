@@ -1,4 +1,4 @@
-import axios from "axios";
+import httpClient from "../config/api";
 import {
   User,
   UserRole,
@@ -6,7 +6,7 @@ import {
   UserForAdmin,
   CourseForAdmin,
   Pagination,
-  AdminStatistics
+  AdminStatistics,
 } from "../types";
 
 export interface Credentials {
@@ -14,23 +14,24 @@ export interface Credentials {
   password: string;
 }
 
-// ✅ Your backend base URL
-const API_URL = "http://localhost:3000/api";
-
-// ✅ Axios instance
-const client = axios.create({
-  baseURL: API_URL,
-  withCredentials: true, // important if backend uses cookies
-});
-
 // --- AUTH ---
 const login = async ({ email, password }: Credentials): Promise<User> => {
   try {
-    const res = await client.post("/auth/login", { email, password });
+    const res = await httpClient.post("/auth/login", { email, password });
 
-    if (!res.data?.data?.user) {
-      throw new Error("Invalid login response from server.");
+    const { user, token } = res.data.data;
+
+    if (
+      !res.data?.data?.user ||
+      !res.data?.data?.accessToken ||
+      !res.data?.data?.refreshToken
+    ) {
+      throw new Error("Internal server error.");
     }
+
+    localStorage.setItem("accessToken", res.data.data.accessToken);
+    localStorage.setItem("refreshToken", res.data.data.refreshToken);
+    localStorage.setItem("user", res.data.data.user);
 
     return res.data.data.user;
   } catch (err: any) {
@@ -49,16 +50,7 @@ const signup = async (userData: {
   password: string;
   role: UserRole;
 }): Promise<User> => {
-  // Log the payload
-  // console.log('Signing up with payload:', {
-  //   email: userData.email,
-  //   username: userData.email,
-  //   password: userData.password,
-  //   fullName: userData.name,
-  //   role: userData.role.toUpperCase(),
-  // });
-
-  const res = await client.post("/auth/register", {
+  const res = await httpClient.post("/auth/register", {
     email: userData.email,
     username: userData.email,
     password: userData.password,
@@ -70,30 +62,31 @@ const signup = async (userData: {
 };
 
 const logout = async () => {
-  await client.post("/auth/logout");
+  await httpClient.post("/auth/logout");
+
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
 };
 
 // --- USERS ---
 const getAllUsers = async (): Promise<User[]> => {
-  const res = await client.get("/user");
+  const res = await httpClient.get("/user");
   return res.data;
 };
 
 // --- COURSES ---
 const getCourses = async (): Promise<Course[]> => {
-  const res = await client.get("/course");
+  const res = await httpClient.get("/course");
   return res.data;
 };
 
 const getCourseById = async (id: string): Promise<Course> => {
-  const res = await client.get(`/course/${id}`);
+  const res = await httpClient.get(`/course/${id}`);
   return res.data;
 };
 
 // --- ADMIN ---
-/**
- * Get all users for admin with pagination, search, and role filter
- */
 const getAllUsersForAdmin = async (params?: {
   page?: number;
   limit?: number;
@@ -102,19 +95,20 @@ const getAllUsersForAdmin = async (params?: {
 }): Promise<{ users: UserForAdmin[]; pagination: Pagination }> => {
   try {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.search) queryParams.append('search', params.search);
-    if (params?.role) queryParams.append('role', params.role);
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.search) queryParams.append("search", params.search);
+    if (params?.role) queryParams.append("role", params.role);
 
-    const url = `/admin/users${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    const res = await client.get(url);
+    const url = `/admin/users${
+      queryParams.toString() ? "?" + queryParams.toString() : ""
+    }`;
 
-    // Server returns: { success: true, data: [...], pagination: {...} }
+    const res = await httpClient.get(url);
+
     const users = res.data.data || [];
-    const pagination = res.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
+    const pagination = res.data.pagination;
 
-    // Map server response to frontend UserForAdmin type
     const mappedUsers = users.map((u: any) => ({
       id: u.id,
       email: u.email,
@@ -131,11 +125,7 @@ const getAllUsersForAdmin = async (params?: {
 
     return { users: mappedUsers, pagination };
   } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to fetch users";
-    throw new Error(message);
+    throw new Error(err.response?.data?.message || "Failed to fetch users");
   }
 };
 
@@ -146,18 +136,19 @@ const getAllCoursesForAdmin = async (params?: {
 }): Promise<{ courses: CourseForAdmin[]; pagination: Pagination }> => {
   try {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.search) queryParams.append('search', params.search);
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.search) queryParams.append("search", params.search);
 
-    const url = `/admin/courses${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    const res = await client.get(url);
+    const url = `/admin/courses${
+      queryParams.toString() ? "?" + queryParams.toString() : ""
+    }`;
 
-    // Server returns: { success: true, data: [...], pagination: {...} }
+    const res = await httpClient.get(url);
+
     const courses = res.data.data || [];
-    const pagination = res.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
+    const pagination = res.data.pagination;
 
-    // Map server response to frontend CourseForAdmin type
     const mappedCourses = courses.map((c: any) => ({
       id: c.id,
       title: c.title,
@@ -178,74 +169,29 @@ const getAllCoursesForAdmin = async (params?: {
 
     return { courses: mappedCourses, pagination };
   } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to fetch courses";
-    throw new Error(message);
+    throw new Error(err.response?.data?.message || "Failed to fetch courses");
   }
 };
 
 const getStatisticsForAdmin = async (): Promise<AdminStatistics> => {
-  try {
-    const res = await client.get("/admin/stats");
-    // Server returns: { success: true, data: { overview, recentEnrollments, popularCourses } }
-    return res.data.data;
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to fetch statistics";
-    throw new Error(message);
-  }
+  const res = await httpClient.get("/admin/stats");
+  return res.data.data;
 };
 
 const banUserForAdmin = async (userId: string): Promise<void> => {
-  try {
-    await client.patch(`/admin/users/${userId}/ban`);
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to ban user";
-    throw new Error(message);
-  }
+  await httpClient.patch(`/admin/users/${userId}/ban`);
 };
 
 const unbanUserForAdmin = async (userId: string): Promise<void> => {
-  try {
-    await client.patch(`/admin/users/${userId}/unban`);
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to unban user";
-    throw new Error(message);
-  }
+  await httpClient.patch(`/admin/users/${userId}/unban`);
 };
 
 const deleteUserForAdmin = async (userId: string): Promise<void> => {
-  try {
-    await client.delete(`/admin/users/${userId}`);
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to delete user";
-    throw new Error(message);
-  }
+  await httpClient.delete(`/admin/users/${userId}`);
 };
 
 const deleteCourseForAdmin = async (courseId: string): Promise<void> => {
-  try {
-    await client.delete(`/admin/courses/${courseId}`);
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to delete course";
-    throw new Error(message);
-  }
+  await httpClient.delete(`/admin/courses/${courseId}`);
 };
 
 export const api = {

@@ -21,14 +21,10 @@ const login = async ({ email, password }: Credentials): Promise<User> => {
 
     const { user, token } = res.data.data;
 
-    // if (!user || !token) {
-    //   throw new Error("Invalid login response from server.");
-    // }
     if (!res.data?.data?.user || !res.data?.data?.accessToken || !res.data?.data?.refreshToken) {
       throw new Error("Internal server error.");
     }
 
-    // ✅ Store JWT for later Authorization checking
     localStorage.setItem("accessToken", res.data.data.accessToken);
     localStorage.setItem("refreshToken", res.data.data.refreshToken);
     localStorage.setItem("user", res.data.data.user);
@@ -65,7 +61,6 @@ const signup = async (userData: {
 const logout = async () => {
   await httpClient.post("/auth/logout");
 
-  // ✅ Clear frontend tokens
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");

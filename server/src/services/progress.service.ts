@@ -1,25 +1,30 @@
 import { Progress } from '@prisma/client';
 import prisma from '../config/prisma.config';
-
 /**
  * - Verify student is enrolled
  * - Create/update progress record
  * - Update enrollment overall progress percentage
  * @param studentId - Student user ID
  * @param lessonId - Lesson ID
+ * @param courseId - Course ID
  * @returns Promise<Progress>
  */
-const markLessonComplete = async (studentId: string, lessonId: string): Promise<Progress> => {
+const markLessonComplete = async (studentId: string, lessonId: string, courseId: string): Promise<Progress> => {
+    const enrollment = await prisma.enrollment.findUnique({
+        where: { studentId_courseId: { studentId, courseId } },
+    });
+
+    if (!enrollment) {
+        throw new Error('Student is not enrolled in this course.');
+    }
+
     const lesson = await prisma.lesson.findUnique({
         where: { id: lessonId },
-        select: { courseId: true }
     });
 
     if (!lesson) {
         throw new Error('Lesson not found.');
     }
-
-    const courseId = lesson.courseId;
 
     // 2. Tạo hoặc cập nhật record Progress
     const progressRecord = await prisma.progress.upsert({
@@ -29,7 +34,7 @@ const markLessonComplete = async (studentId: string, lessonId: string): Promise<
                 lessonId,
             }
         },
-        update: { completedAt: new Date() }, // Đảm bảo luôn được đánh dấu là hoàn thành
+        update: { completedAt: new Date() }, 
         create: {
             studentId,
             lessonId,

@@ -60,15 +60,9 @@ const SignupPage: React.FC<SignupPageProps> = ({ setView }) => {
       setSuccess('Create account successfully! Redirecting...');
       setError('');
     
-      if (user.role === UserRole.Teacher) {
-        setTimeout(() => {
-          setLoading(false);
-          setView({ page: 'teacher-dashboard' });}, 1500);
-      } else {
-        setTimeout(() => {
-          setLoading(false);
-          setView({ page: 'student-dashboard' });}, 1500);
-      }
+      setTimeout(() => {
+        setLoading(false);
+        setView({ page: 'login' });}, 1500);
     } catch (err: any) {
       setLoading(false);
       setSuccess('');

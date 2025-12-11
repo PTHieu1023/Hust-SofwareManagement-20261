@@ -1,11 +1,15 @@
-import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+} from "axios";
 
 // Create axios instance with default config
 const httpClient: AxiosInstance = axios.create({
-  baseURL: process.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+  baseURL: process.env.VITE_API_BASE_URL || "http://localhost:3000/api",
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -32,12 +36,12 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 // Request interceptor - add auth token to requests
 httpClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken');
-    
+    const token = localStorage.getItem("accessToken");
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error: AxiosError) => {
@@ -47,49 +51,52 @@ httpClient.interceptors.request.use(
 
 // Response interceptor - handle token refresh on 401
 httpClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
-    // Check if error is 401 and we haven't already tried to refresh
+    const url = originalRequest?.url ?? "";
+
+    if (url.includes("/auth/login")) {
+      throw error;
+    }
+
+    // Only handle refresh on protected routes
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // If already refreshing, queue this request
+        // Queue requests while refreshing
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
-            if (originalRequest.headers && typeof token === 'string') {
+            if (originalRequest.headers && typeof token === "string") {
               originalRequest.headers.Authorization = `Bearer ${token}`;
             }
             return httpClient(originalRequest);
           })
-          .catch((err) => {
-            throw err;
-          });
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = localStorage.getItem("refreshToken");
 
       if (!refreshToken) {
-        // No refresh token available, logout user
         handleLogout();
         throw error;
       }
 
       try {
-        // Attempt to refresh the token
+        // Refresh token request
         const response = await axios.post(
           `${httpClient.defaults.baseURL}/auth/refresh`,
           { refreshToken },
           {
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           }
         );
@@ -97,23 +104,22 @@ httpClient.interceptors.response.use(
         const { accessToken, refreshToken: newRefreshToken } = response.data;
 
         // Store new tokens
-        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem("accessToken", accessToken);
+
         if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
+          localStorage.setItem("refreshToken", newRefreshToken);
         }
 
-        // Update authorization header
+        // Update header for queued request
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
 
-        // Process queued requests
+        // Release queued requests
         processQueue(null, accessToken);
 
-        // Retry original request
         return httpClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, logout user
         processQueue(refreshError as Error, null);
         handleLogout();
         throw refreshError;
@@ -128,13 +134,13 @@ httpClient.interceptors.response.use(
 
 // Helper function to handle logout
 const handleLogout = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
-  
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
+
   // Redirect to login page
   if (globalThis.window !== undefined) {
-    globalThis.window.location.href = '/login';
+    globalThis.window.location.href = "/login";
   }
 };
 

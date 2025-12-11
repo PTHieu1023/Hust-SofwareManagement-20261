@@ -1,11 +1,15 @@
-import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+} from "axios";
 
 // Create axios instance with default config
 const httpClient: AxiosInstance = axios.create({
-  baseURL: process.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+  baseURL: process.env.VITE_API_BASE_URL || "http://localhost:3000/api",
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -32,12 +36,12 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 // Request interceptor - add auth token to requests
 httpClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken');
-    
+    const token = localStorage.getItem("accessToken");
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return config;
   },
   (error: AxiosError) => {
@@ -55,15 +59,14 @@ httpClient.interceptors.response.use(
 
     const url = originalRequest?.url ?? "";
 
-    // ✅ VERY IMPORTANT: Do NOT refresh or logout on login error
     if (url.includes("/auth/login")) {
       throw error;
     }
 
-    // ✅ Only handle refresh on protected routes
+    // Only handle refresh on protected routes
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // ✅ Queue requests while refreshing
+        // Queue requests while refreshing
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
@@ -87,7 +90,7 @@ httpClient.interceptors.response.use(
       }
 
       try {
-        // ✅ Refresh token request
+        // Refresh token request
         const response = await axios.post(
           `${httpClient.defaults.baseURL}/auth/refresh`,
           { refreshToken },
@@ -100,19 +103,19 @@ httpClient.interceptors.response.use(
 
         const { accessToken, refreshToken: newRefreshToken } = response.data;
 
-        // ✅ Store new tokens
+        // Store new tokens
         localStorage.setItem("accessToken", accessToken);
 
         if (newRefreshToken) {
           localStorage.setItem("refreshToken", newRefreshToken);
         }
 
-        // ✅ Update header for queued request
+        // Update header for queued request
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
 
-        // ✅ Release queued requests
+        // Release queued requests
         processQueue(null, accessToken);
 
         return httpClient(originalRequest);
@@ -129,16 +132,15 @@ httpClient.interceptors.response.use(
   }
 );
 
-
 // Helper function to handle logout
 const handleLogout = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
-  
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
+
   // Redirect to login page
   if (globalThis.window !== undefined) {
-    globalThis.window.location.href = '/login';
+    globalThis.window.location.href = "/login";
   }
 };
 

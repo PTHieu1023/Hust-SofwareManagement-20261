@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { body, param } from 'express-validator';
+import { body } from 'express-validator';
 import { authenticate, authorize } from '@/middleware/auth.middleware';
 import { validate } from '@/middleware/validation.middleware';
 import { upload } from '@/middleware/storage.middleware';
@@ -8,35 +8,13 @@ import * as lessonController from '@/controllers/lesson.controller';
 const router: Router = Router();
 
 // Get lessons for a course
-router.get(
-    '/course/:courseId', 
-    [
-    param('courseId').isString().notEmpty().withMessage('courseId is required'),
-    validate,
-    ],
-    lessonController.getLessonsForStudentByCourse
-);
+router.get('/course/:courseId', lessonController.getLessonsByCourse);
 
-/**
- * Protected routes (require authentication)
- * From here on, user must be logged in.
- */
+// Get single lesson
+router.get('/:id', lessonController.getLessonById);
+
+// Protected routes (require authentication)
 router.use(authenticate);
-
-// Get lesson detail (view content)
-// Used by students to watch a lesson (video/PDF/text)
-router.get(
-    '/:id',
-    authorize('STUDENT'),
-    [
-        param('id')
-        .isString()
-        .notEmpty()
-        .withMessage('lesson id is required'),
-        validate,
-    ],
-    lessonController.getLessonDetailForStudent
-);
 
 // Teacher-only routes
 router.post(

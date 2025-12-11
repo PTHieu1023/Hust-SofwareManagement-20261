@@ -1,3 +1,5 @@
+import axios from "axios";
+import { User, UserRole, Course, Enrollment } from "../types";
 import httpClient from "../config/api";
 import {
   User,
@@ -75,6 +77,10 @@ const getAllUsers = async (): Promise<User[]> => {
   return res.data;
 };
 
+const getUserById = async (id: string): Promise<Course> => {
+  const res = await client.get(`/user/${id}`);
+  return res.data;
+};
 // --- COURSES ---
 const getCourses = async (): Promise<Course[]> => {
   const res = await httpClient.get("/course");
@@ -86,6 +92,38 @@ const getCourseById = async (id: string): Promise<Course> => {
   return res.data;
 };
 
+const getEnrollment = async (userId: string, courseId: string): Promise<Enrollment | null> => {
+    try {
+        const res = await client.get(`/enrollments/${userId}/${courseId}`);
+        return res.data;
+    } catch (err: any) {
+        // Server trả về 404 nếu chưa đăng ký
+        if (err.response?.status === 404) {
+            return null;
+        }
+        throw err;
+    }
+};
+
+const enrollStudent = async (userId: string, courseId: string): Promise<Enrollment> => {
+    const res = await client.post('/enrollments', { userId, courseId });
+    return res.data;
+};
+
+const completeLesson = async (userId: string, courseId: string, lessonId: string): Promise<Enrollment> => {
+    const res = await client.post(`/enrollments/${courseId}/lessons/${lessonId}/complete`, { userId });
+    return res.data;
+};
+
+// HÀM HỦY ĐĂNG KÝ MỚI
+const unenrollStudent = async (userId: string, courseId: string): Promise<void> => {
+    // Sử dụng phương thức DELETE tới endpoint liên quan đến Enrollment
+    const res = await client.delete(`/enrollments/${userId}/${courseId}`);
+    
+    if (res.status !== 200 && res.status !== 204) {
+        throw new Error(`Failed to unenroll student with status: ${res.status}`);
+    }
+};
 // --- ADMIN ---
 const getAllUsersForAdmin = async (params?: {
   page?: number;
@@ -199,6 +237,7 @@ export const api = {
   signup,
   logout,
   getAllUsers,
+  getUserById,
   getCourses,
   getCourseById,
   getAllUsersForAdmin,

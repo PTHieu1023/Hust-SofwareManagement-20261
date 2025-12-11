@@ -1,4 +1,4 @@
-import httpClient from "../config/api"; // ✅ USE YOUR INTERCEPTOR CLIENT
+import httpClient from "../config/api";
 import {
   User,
   UserRole,
@@ -21,14 +21,14 @@ const login = async ({ email, password }: Credentials): Promise<User> => {
 
     const { user, token } = res.data.data;
 
-    // if (!user || !token) {
-    //   throw new Error("Invalid login response from server.");
-    // }
-    if (!res.data?.data?.user || !res.data?.data?.accessToken || !res.data?.data?.refreshToken) {
+    if (
+      !res.data?.data?.user ||
+      !res.data?.data?.accessToken ||
+      !res.data?.data?.refreshToken
+    ) {
       throw new Error("Internal server error.");
     }
 
-    // ✅ Store JWT for later Authorization checking
     localStorage.setItem("accessToken", res.data.data.accessToken);
     localStorage.setItem("refreshToken", res.data.data.refreshToken);
     localStorage.setItem("user", res.data.data.user);
@@ -43,7 +43,6 @@ const login = async ({ email, password }: Credentials): Promise<User> => {
     throw new Error(message);
   }
 };
-
 
 const signup = async (userData: {
   name: string;
@@ -65,7 +64,6 @@ const signup = async (userData: {
 const logout = async () => {
   await httpClient.post("/auth/logout");
 
-  // ✅ Clear frontend tokens
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
@@ -127,9 +125,7 @@ const getAllUsersForAdmin = async (params?: {
 
     return { users: mappedUsers, pagination };
   } catch (err: any) {
-    throw new Error(
-      err.response?.data?.message || "Failed to fetch users"
-    );
+    throw new Error(err.response?.data?.message || "Failed to fetch users");
   }
 };
 
@@ -173,9 +169,7 @@ const getAllCoursesForAdmin = async (params?: {
 
     return { courses: mappedCourses, pagination };
   } catch (err: any) {
-    throw new Error(
-      err.response?.data?.message || "Failed to fetch courses"
-    );
+    throw new Error(err.response?.data?.message || "Failed to fetch courses");
   }
 };
 

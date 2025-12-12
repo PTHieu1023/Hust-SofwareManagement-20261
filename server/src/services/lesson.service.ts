@@ -133,39 +133,112 @@ const getLessonsForTeacherByCourse = async (
  * @param data - Lesson data
  * @returns Promise<Lesson>
  */
-const createLesson = async (
-    _teacherId: string,
-    _data: {
+
+const validateLessonOwnership = async (lessonId: string, teacherId: string) => {
+    const lesson = await prisma.lesson.findUnique({
+        where: { id: lessonId },
+        include: { course: true }
+    });
+    if (!lesson) throw new Error('Lesson not found');
+    if (lesson.course.teacherId !== teacherId) {
+        throw new Error('You do not have permission to modify this lesson');
+    }
+    return lesson;
+};
+
+// 1. Service: Create Lesson
+export const createLesson = async (
+    teacherId: string,
+    data: {
+        courseId: string;
         title: string;
         description?: string;
-        type: string;
-        courseId: string;
-        order: number;
-        content?: string;
+        type: 'VIDEO' | 'PDF' | 'TEXT';
+        contentUrl: string;
+        duration?: number;
+        order?: number;
+        isPublished?: boolean;
+    }
+): Promise<Lesson> => {
+    // Check Course Owner
+    const course = await prisma.course.findUnique({ where: { id: data.courseId } });
+    if (!course) throw new Error('Course not found');
+    if (course.teacherId !== teacherId) throw new Error('You are not the owner of this course');
+
+    let newOrder: number;
+    if (data.order !== undefined) {
+
+        newOrder = data.order;
+        await prisma.lesson.updateMany({
+            where: {
+                courseId: data.courseId,
+                order: { gte: newOrder },
+            },
+            data: { order: { increment: 1 } },
+        });
+    } else {
+
+        const maxOrderLesson = await prisma.lesson.findFirst({
+            where: { courseId: data.courseId },
+            orderBy: { order: 'desc' },
+        });
+        newOrder = maxOrderLesson ? maxOrderLesson.order + 1 : 1;
+    }
+
+    return await prisma.lesson.create({
+        data: {
+            courseId: data.courseId,
+            title: data.title,
+            description: data.description || '',
+            type: data.type,
+            contentUrl: data.contentUrl,
+            duration: data.duration || 0,
+            order: newOrder,
+            isPublished: data.isPublished ?? false,
+        },
+    });
+};
+
+// 2. Service: Update Content
+export const updateLessonContent = async (
+    lessonId: string,
+    teacherId: string,
+    data: {
+        title?: string;
+        description?: string;
+        type?: 'VIDEO' | 'PDF' | 'TEXT';
         contentUrl?: string;
         duration?: number;
     }
 ): Promise<Lesson> => {
-    // TODO: Implement lesson creation
-    throw new Error('Not implemented');
-}
+    // Verify Owner
+    await validateLessonOwnership(lessonId, teacherId);
 
-/**
- * - Verify teacher owns the course
- * - Update lesson data
- * @param lessonId - Lesson ID
- * @param teacherId - Teacher user ID
- * @param data - Update data
- * @returns Promise<Lesson>
- */
-const updateLesson = async (
-    _lessonId: string,
-    _teacherId: string,
-    _data: Partial<Lesson>
+    // Filter undefined values để không update null
+    const updateData = Object.fromEntries(
+        Object.entries(data).filter(([_, v]) => v !== undefined)
+    );
+
+    return await prisma.lesson.update({
+        where: { id: lessonId },
+        data: updateData,
+    });
+};
+
+// 3. Service: Update Publish Status
+export const updateLessonPublishStatus = async (
+    lessonId: string,
+    teacherId: string,
+    isPublished: boolean
 ): Promise<Lesson> => {
-    // TODO: Implement lesson update
-    throw new Error('Not implemented');
-}
+    // Verify Owner
+    await validateLessonOwnership(lessonId, teacherId);
+
+    return await prisma.lesson.update({
+        where: { id: lessonId },
+        data: { isPublished },
+    });
+};
 
 /**
  * - Verify teacher owns the course
@@ -174,9 +247,20 @@ const updateLesson = async (
  * @param teacherId - Teacher user ID
  * @returns Promise<void>
  */
-const deleteLesson = async (_lessonId: string, _teacherId: string): Promise<void> => {
-    // TODO: Implement lesson deletion
-    throw new Error('Not implemented');
+const deleteLesson = async (lessonId: string, teacherId: string): Promise<void> => {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId},
+      include: { course: true}
+    });
+
+    if (!lesson) throw new Error('Lesson not found');
+    if (lesson.course.teacherId !== teacherId){
+      throw new Error('You have no permission to delete this lesson');
+    }
+
+    await prisma.lesson.delete({
+      where: {id: lessonId}
+    });
 }
 
 export default {
@@ -184,6 +268,7 @@ export default {
     getLessonDetailForStudent,
     getLessonsForTeacherByCourse,
     createLesson,
-    updateLesson,
+    updateLessonContent,
+    updateLessonPublishStatus,
     deleteLesson,
 };

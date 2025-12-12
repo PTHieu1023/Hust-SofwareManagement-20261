@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { authenticate, authorize } from '@/middleware/auth.middleware';
 import { validate } from '@/middleware/validation.middleware';
-import { upload } from '@/middleware/storage.middleware';
 import * as lessonController from '@/controllers/lesson.controller';
 
 const router: Router = Router();
@@ -59,23 +58,47 @@ router.get(
 router.post(
     '/',
     authorize('TEACHER', 'ADMIN'),
-    upload.single('content'),
     [
-        body('title').notEmpty().withMessage('Title is required'),
-        body('description').optional().isString(),
-        body('type').isIn(['VIDEO', 'PDF', 'TEXT']).withMessage('Invalid lesson type'),
         body('courseId').notEmpty().withMessage('Course ID is required'),
-        body('order').isInt().withMessage('Order must be an integer'),
+        body('title').notEmpty().withMessage('Title is required'),
+        body('type').isIn(['VIDEO', 'PDF', 'TEXT']).withMessage('Invalid lesson type'),
+        body('contentUrl').notEmpty().withMessage('Content URL is required'), // Bắt buộc URL từ API upload
+        body('duration').optional().isInt({ min: 0 }),
+        body('description').optional().isString(),
+        // Order tự tính toán ở Service, không bắt buộc gửi từ FE trừ khi muốn chèn giữa
+        body('order').optional().isInt(), 
+        body('isPublished').optional().isBoolean().withMessage('isPublished must be boolean'),
         validate,
     ],
     lessonController.createLesson
 );
 
+// 2. Update Lesson Content (Edit)
 router.put(
     '/:id',
     authorize('TEACHER', 'ADMIN'),
-    upload.single('content'),
-    lessonController.updateLesson
+    [
+        param('id').notEmpty(),
+        body('title').optional().notEmpty(),
+        body('type').optional().isIn(['VIDEO', 'PDF', 'TEXT']),
+        body('contentUrl').optional().isURL(), 
+        body('duration').optional().isInt({ min: 0 }),
+        body('isPublished').optional().isBoolean().withMessage('isPublished must be boolean'),
+        validate
+    ],
+    lessonController.updateLessonContent
+);
+
+// 3. Publish/Unpublish Lesson
+router.patch(
+    '/:id/publish',
+    authorize('TEACHER', 'ADMIN'),
+    [
+        param('id').notEmpty(),
+        body('isPublished').isBoolean().withMessage('isPublished must be boolean'),
+        validate
+    ],
+    lessonController.toggleLessonPublish
 );
 
 router.delete('/:id', authorize('TEACHER', 'ADMIN'), lessonController.deleteLesson);

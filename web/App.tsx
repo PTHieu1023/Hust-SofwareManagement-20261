@@ -10,8 +10,6 @@ import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import QuizPage from './pages/QuizPage';
-
-// --- IMPORT TRANG MỚI ---
 import CreateCoursePage from './pages/CreateCoursePage';
 import EditCoursePage from './pages/EditCoursePage';
 
@@ -45,15 +43,10 @@ const Main: React.FC = () => {
         return <AdminDashboard setView={setView} />;
       case 'quiz':
          return <QuizPage setView={setView} courseId={view.courseId} lessonId={view.lessonId} quizId={view.quizId} />;
-      
-      // --- CÁC ROUTE MỚI ---
       case 'create-course':
         return <CreateCoursePage setView={setView} />;
       case 'edit-course':
-        // TS hiểu view ở đây có id vì type View đã define
         return <EditCoursePage courseId={view.id} setView={setView} />;
-      // --------------------
-
       default:
         return <HomePage setView={setView} />;
     }

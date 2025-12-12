@@ -13,7 +13,6 @@ const EditCoursePage: React.FC<EditCoursePageProps> = ({ courseId, setView }) =>
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Lấy dữ liệu cũ
   useEffect(() => {
     const fetchCourse = async () => {
       try {

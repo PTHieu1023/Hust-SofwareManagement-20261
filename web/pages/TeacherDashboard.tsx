@@ -17,7 +17,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ setView }) => {
     if (!user) return;
     try {
       setLoading(true);
-      // GỌI API GET MY COURSES CỦA TEACHER (Feature 2)
       const myCourses = await api.getMyCourses();
       setCourses(myCourses);
     } catch (error) {
@@ -56,7 +55,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ setView }) => {
                 key={course.id} 
                 course={course} 
                 setView={setView} 
-                isTeacherView={true} // Bật chế độ Teacher
+                isTeacherView={true} 
                 onRefresh={fetchTeacherCourses} // Reload khi có thay đổi
             />
           ))}

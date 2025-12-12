@@ -15,11 +15,10 @@ export interface Credentials {
   password: string;
 }
 
-// --- AUTH (Giữ nguyên) ---
 const login = async ({ email, password }: Credentials): Promise<User> => {
   try {
     const res = await httpClient.post("/auth/login", { email, password });
-    const { user, accessToken, refreshToken } = res.data.data; // Đã fix destructuring
+    const { user, accessToken, refreshToken } = res.data.data; 
 
     if (!user || !accessToken || !refreshToken) {
       throw new Error("Internal server error.");
@@ -27,7 +26,7 @@ const login = async ({ email, password }: Credentials): Promise<User> => {
 
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("user", JSON.stringify(user)); // Fix: stringify user object
+    localStorage.setItem("user", JSON.stringify(user)); 
 
     return user;
   } catch (err: any) {
@@ -65,22 +64,19 @@ const logout = async () => {
   localStorage.removeItem("user");
 };
 
-// --- USERS (Giữ nguyên) ---
 const getAllUsers = async (): Promise<User[]> => {
   const res = await httpClient.get("/user");
   return res.data;
 };
 
-const getUserById = async (id: string): Promise<User> => { // Fix return type Course -> User
+const getUserById = async (id: string): Promise<User> => { 
   const res = await httpClient.get(`/user/${id}`);
   return res.data;
 };
 
-// --- COURSES (CẬP NHẬT CHO FEATURE 2) ---
-
 // 1. Get All (Public + Search/Filter)
 const getCourses = async (params?: { search?: string; level?: string; category?: string }): Promise<Course[]> => {
-  const res = await httpClient.get("/course", { params }); // Dùng endpoint /course hoặc /courses tùy backend bạn define
+  const res = await httpClient.get("/course", { params }); 
   return res.data;
 };
 
@@ -123,7 +119,6 @@ const togglePublish = async (id: string, isPublished: boolean): Promise<Course> 
     return res.data.course || res.data;
 };
 
-// --- ENROLLMENTS & LESSONS (Giữ nguyên) ---
 const getEnrollment = async (userId: string, courseId: string): Promise<Enrollment | null> => {
     try {
         const res = await httpClient.get(`/enrollments/${userId}/${courseId}`);
@@ -151,9 +146,7 @@ const unenrollStudent = async (userId: string, courseId: string): Promise<void> 
     }
 };
 
-// --- ADMIN (Giữ nguyên) ---
 const getAllUsersForAdmin = async (params?: { page?: number; limit?: number; search?: string; role?: string; }): Promise<{ users: UserForAdmin[]; pagination: Pagination }> => {
-  // ... (Giữ nguyên code cũ của bạn)
   try {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append("page", params.page.toString());
@@ -169,7 +162,6 @@ const getAllUsersForAdmin = async (params?: { page?: number; limit?: number; sea
 };
 
 const getAllCoursesForAdmin = async (params?: { page?: number; limit?: number; search?: string; }): Promise<{ courses: CourseForAdmin[]; pagination: Pagination }> => {
-    // ... (Giữ nguyên code cũ của bạn)
     try {
         const queryParams = new URLSearchParams();
         if (params?.page) queryParams.append("page", params.page.toString());
@@ -212,11 +204,11 @@ export const api = {
   getUserById,
   getCourses,
   getCourseById,
-  getMyCourses, // Mới
-  createCourse, // Mới
-  updateCourse, // Mới
-  deleteCourse, // Mới
-  togglePublish, // Mới
+  getMyCourses, 
+  createCourse, 
+  updateCourse, 
+  deleteCourse, 
+  togglePublish, 
   getEnrollment,
   enrollStudent,
   completeLesson,

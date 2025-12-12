@@ -11,7 +11,7 @@ const HomePage: React.FC<HomePageProps> = ({ setView }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // States cho Search/Filter (Feature 2)
+  // States for Search/Filter
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -33,7 +33,6 @@ const HomePage: React.FC<HomePageProps> = ({ setView }) => {
     }
   };
 
-  // Debounce search: Chỉ gọi API sau khi ngừng gõ 500ms hoặc khi đổi filter
   useEffect(() => {
     const timer = setTimeout(() => {
         fetchCourses();
@@ -50,7 +49,7 @@ const HomePage: React.FC<HomePageProps> = ({ setView }) => {
         </p>
       </div>
 
-      {/* FILTER BAR (FEATURE 2) */}
+      {/* FILTER BAR */}
       <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 mb-8 flex flex-col md:flex-row gap-4">
           <input 
             type="text" 

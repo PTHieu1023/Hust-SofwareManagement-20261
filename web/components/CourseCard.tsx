@@ -11,7 +11,7 @@ interface CourseCardProps {
 
 const CourseCard: React.FC<CourseCardProps> = ({ course, setView, isTeacherView, onRefresh }) => {
   
-  // Xử lý ảnh (nếu backend lưu đường dẫn tương đối)
+  // Xử lý ảnh 
   const imageUrl = course.thumbnail 
     ? (course.thumbnail.startsWith('http') ? course.thumbnail : `http://localhost:3000${course.thumbnail}`)
     : 'https://via.placeholder.com/300?text=Course';

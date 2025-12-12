@@ -38,16 +38,15 @@ export interface Lesson {
   isPublished?: boolean;
 }
 
-// --- CẬP NHẬT COURSE CHO FEATURE 2 ---
 export interface Course {
   id: string;
   title: string;
   description: string;
   thumbnail: string;
   teacherId: string;
-  level?: string;      // Thêm
-  category?: string;   // Thêm
-  isPublished: boolean; // Thêm
+  level?: string;      
+  category?: string;   
+  isPublished: boolean; 
   createdAt?: string;
   updatedAt?: string;
   lessons?: Lesson[];
@@ -75,7 +74,6 @@ export interface QuizAttempt {
   answers: number[];
 }
 
-// ----Admin Interfaces (Giữ nguyên)----
 export interface Pagination {
   total: number;
   page: number;
@@ -160,7 +158,6 @@ export interface AdminStatistics {
   popularCourses: PopularCourse[];
 }
 
-//----Views (Cập nhật thêm view tạo/sửa)----
 export type View =
   | { page: 'home' }
   | { page: 'login' }
@@ -171,5 +168,5 @@ export type View =
   | { page: 'student-dashboard' }
   | { page: 'teacher-dashboard' }
   | { page: 'admin-dashboard' }
-  | { page: 'create-course' }     // Mới
-  | { page: 'edit-course'; id: string }; // Mới
+  | { page: 'create-course' }    
+  | { page: 'edit-course'; id: string }; 

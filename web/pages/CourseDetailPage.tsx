@@ -29,15 +29,11 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
         const courseData = await api.getCourseById(courseId);
         setCourse(courseData);
 
-        // 2. Nếu courseData trả về teacher object bên trong thì set luôn, 
-        // nếu không thì gọi API user (tùy thuộc vào backend trả về gì)
-        // Ở đây giả sử backend trả về teacher object lồng trong course
+        // 2. CourseData trả về teacher object bên trong -> set
         if(courseData.teacher) {
-            // Ép kiểu tạm hoặc map dữ liệu nếu cần. 
-            // Nếu backend trả về { id, fullName, avatar } thì ta có thể dùng trực tiếp hoặc set vào state riêng
-            // Ở đây để đơn giản ta dùng trực tiếp course.teacher trong JSX
+
         } else if (courseData.teacherId) {
-             // Fallback: Nếu backend chưa include teacher, gọi API rời
+             // Fallback: Backend chưa include teacher -> gọi API rời
              const teacherData = await api.getUserById(courseData.teacherId);
              setTeacher(teacherData);
         }
@@ -54,7 +50,6 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
       }
     };
     fetchCourseData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId, user]);
 
   // Tính toán phần trăm tiến độ
@@ -101,9 +96,8 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
   };
 
   const handleLessonClick = (lesson: Lesson) => {
-    // Logic tương tác: 
-    // - Teacher/Admin luôn xem được
-    // - Student phải enroll mới xem được
+    // Teacher/Admin luôn xem được
+    // Student phải enroll mới xem được
     const canView = isTeacher || isAdmin || isEnrolled;
 
     if (!canView) {
@@ -118,7 +112,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
            .catch(err => console.error(err));
     }
     
-    // Tạm thời alert, sau này sẽ chuyển view sang trang xem video
+    // Tạm thời alert, chuyển view sang trang xem video sau
     alert(`Playing lesson: ${lesson.title}\n(Content URL: ${lesson.contentUrl || 'N/A'})`);
   };
 
@@ -129,7 +123,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
   const isTeacher = user?.id === course.teacherId;
   const isAdmin = user?.role === UserRole.Admin;
   
-  // Ưu tiên lấy thông tin teacher từ course include, nếu không thì lấy từ state teacher
+  // Lấy thông tin teacher từ course include, nếu không thì lấy từ state teacher
   const displayTeacherName = course.teacher?.fullName || teacher?.name || 'Unknown Instructor';
 
   // URL ảnh an toàn
@@ -317,7 +311,6 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
   );
 };
 
-// --- COMPONENT MODAL ---
 interface UnenrollModalProps {
     courseTitle: string;
     onClose: () => void;

@@ -78,7 +78,7 @@ export const createCourse = async (req: AuthRequest, res: Response, next: NextFu
         const teacherId = req.user!.id;
         const { title, description, category, level } = req.body;
         
-        const thumbnail = req.file ? `/uploads/${req.file.filename}` : undefined;
+        const thumbnail = req.file ? `/uploads/thumbnail/${req.file.filename}` : undefined;
 
         const newCourse = await courseService.createCourse(teacherId, {
             title,

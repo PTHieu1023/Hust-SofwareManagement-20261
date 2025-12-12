@@ -1,4 +1,5 @@
 import { Enrollment } from '@prisma/client';
+import prisma from '@/config/prisma.config';
 
 
 /**
@@ -9,9 +10,32 @@ import { Enrollment } from '@prisma/client';
  * @param courseId - Course ID
  * @returns Promise<Enrollment>
  */
-const enrollInCourse = async (_studentId: string, _courseId: string): Promise<Enrollment> => {
-    // TODO: Implement enrollment
-    throw new Error('Not implemented');
+const enrollInCourse = async (studentId: string, courseId: string): Promise<Enrollment> => {
+    // Check course exists and is published
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course || !course.isPublished) {
+        throw new Error('Course not available for enrollment');
+    }
+
+    // Check if already enrolled
+    const existing = await prisma.enrollment.findUnique({
+        where: { studentId_courseId: { studentId, courseId } }
+    });
+    if (existing) {
+        throw new Error('Student already enrolled in this course');
+    }
+
+    // Create enrollment record
+    const enrollment = await prisma.enrollment.create({
+        data: {
+            studentId,
+            courseId,
+            enrolledAt: new Date(),
+            progress: 0
+        }
+    });
+
+    return enrollment;
 }
 
 /**
@@ -20,9 +44,13 @@ const enrollInCourse = async (_studentId: string, _courseId: string): Promise<En
  * @param studentId - Student user ID
  * @returns Promise<Enrollment[]>
  */
-const getStudentEnrollments = async (_studentId: string): Promise<Enrollment[]> => {
-    // TODO: Implement get student enrollments
-    throw new Error('Not implemented');
+const getStudentEnrollments = async (studentId: string): Promise<Enrollment[]> => {
+    const enrollments = await prisma.enrollment.findMany({
+        where: { studentId },
+        include: { course: true }
+    });
+
+    return enrollments;
 }
 
 /**
@@ -32,9 +60,22 @@ const getStudentEnrollments = async (_studentId: string): Promise<Enrollment[]> 
  * @param teacherId - Teacher user ID
  * @returns Promise<Enrollment[]>
  */
-const getCourseEnrollments = async (_courseId: string, _teacherId: string): Promise<Enrollment[]> => {
-    // TODO: Implement get course enrollments
-    throw new Error('Not implemented');
+const getCourseEnrollments = async (courseId: string, teacherId: string): Promise<Enrollment[]> => {
+    // Verify teacher owns the course
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) {
+        throw new Error('Course not found');
+    }
+    if (course.teacherId !== teacherId) {
+        throw new Error('Unauthorized');
+    }
+
+    const enrollments = await prisma.enrollment.findMany({
+        where: { courseId },
+        include: { student: true }
+    });
+
+    return enrollments;
 }
 
 /**
@@ -44,9 +85,19 @@ const getCourseEnrollments = async (_courseId: string, _teacherId: string): Prom
  * @param courseId - Course ID
  * @returns Promise<void>
  */
-const unenrollFromCourse = async (_studentId: string, _courseId: string): Promise<void> => {
-    // TODO: Implement unenrollment
-    throw new Error('Not implemented');
+const unenrollFromCourse = async (studentId: string, courseId: string): Promise<void> => {
+    // Remove progress entries for this course and student
+    await prisma.progress.deleteMany({
+        where: {
+            studentId,
+            lesson: { courseId }
+        }
+    });
+
+    // Remove enrollment record
+    await prisma.enrollment.delete({
+        where: { studentId_courseId: { studentId, courseId } }
+    });
 }
 
 export default {

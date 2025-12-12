@@ -1,4 +1,5 @@
 import { User } from '@prisma/client';
+import prisma from '@/config/prisma.config';
 
 /**
  * - Query database for user by id
@@ -6,9 +7,13 @@ import { User } from '@prisma/client';
  * @param userId - User ID
  * @returns Promise<User | null>
  */
-const getUserById = async (_userId: string): Promise<Omit<User, 'password'> | null> => {
-    // TODO: Implement get user by id
-    throw new Error('Not implemented');
+const getUserById = async (userId: string): Promise<Omit<User, 'password'> | null> => {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) return null;
+
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
 }
 
 /**
@@ -19,11 +24,20 @@ const getUserById = async (_userId: string): Promise<Omit<User, 'password'> | nu
  * @returns Promise<User>
  */
 const updateProfile = async (
-    _userId: string,
-    _data: { fullName?: string; avatar?: string }
+    userId: string,
+    data: { fullName?: string; avatar?: string }
 ): Promise<Omit<User, 'password'>> => {
-    // TODO: Implement profile update
-    throw new Error('Not implemented');
+    const updateData: any = {};
+    if (data.fullName !== undefined) updateData.fullName = data.fullName;
+    if (data.avatar !== undefined) updateData.avatar = data.avatar;
+
+    const user = await prisma.user.update({
+        where: { id: userId },
+        data: updateData
+    });
+
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
 }
 
 export default {

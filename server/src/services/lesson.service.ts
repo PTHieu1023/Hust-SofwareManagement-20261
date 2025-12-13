@@ -240,28 +240,54 @@ export const createLesson = async (
 
 // 2. Service: Update Content
 export const updateLessonContent = async (
-    lessonId: string,
-    teacherId: string,
-    data: {
-        title?: string;
-        description?: string;
-        type?: 'VIDEO' | 'PDF' | 'TEXT';
-        contentUrl?: string;
-        duration?: number;
-    }
+  lessonId: string,
+  teacherId: string,
+  data: {
+    title?: string;
+    description?: string;
+    type?: 'VIDEO' | 'PDF' | 'TEXT';
+    contentUrl?: string;
+    duration?: number;
+    order?: number;
+    isPublished?: boolean;
+  }
 ): Promise<Lesson> => {
-    // Verify Owner
-    await validateLessonOwnership(lessonId, teacherId);
+  const lesson = await validateLessonOwnership(lessonId, teacherId);
 
-    // Filter undefined values để không update null
-    const updateData = Object.fromEntries(
-        Object.entries(data).filter(([_, v]) => v !== undefined)
-    );
-
-    return await prisma.lesson.update({
-        where: { id: lessonId },
-        data: updateData,
+  // ===== Handle Order Change =====
+  if (data.order !== undefined && data.order !== lesson.order) {
+    // Dịch các lesson khác
+    await prisma.lesson.updateMany({
+      where: {
+        courseId: lesson.courseId,
+        id: { not: lessonId },
+        order: {
+          gte: data.order,
+        },
+      },
+      data: {
+        order: { increment: 1 },
+      },
     });
+  }
+
+  // Remove undefined fields
+  const updateData = Object.fromEntries(
+    Object.entries({
+      title: data.title,
+      description: data.description,
+      type: data.type,
+      contentUrl: data.contentUrl,
+      duration: data.duration,
+      order: data.order,
+      isPublished: data.isPublished,
+    }).filter(([_, v]) => v !== undefined)
+  );
+
+  return prisma.lesson.update({
+    where: { id: lessonId },
+    data: updateData,
+  });
 };
 
 // 3. Service: Update Publish Status

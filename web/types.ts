@@ -27,15 +27,32 @@ export interface Quiz {
   questions: Question[];
 }
 
+export enum LessonType {
+  VIDEO = 'VIDEO',
+  PDF = 'PDF',
+  TEXT = 'TEXT',
+}
+
+export interface LessonPayload {
+  courseId?: string; 
+  title: string;
+  description?: string;
+  type: LessonType;
+  contentUrl: string;
+  duration?: number;
+  order?: number; 
+  isPublished?: boolean;
+}
 export interface Lesson {
   id: string;
   title: string;
-  type: 'video' | 'pdf';
-  contentUrl: string; 
-  quiz?: Quiz;
+  description?: string;
+  type: LessonType;
+  contentUrl: string;
   duration?: number;
-  order?: number;
-  isPublished?: boolean;
+  order: number;
+  isPublished: boolean;
+  courseId: string;
 }
 
 export interface Course {
@@ -164,6 +181,7 @@ export type View =
   | { page: 'signup' }
   | { page: 'course'; id: string }
   | { page: 'lesson'; courseId: string; lessonId: string }
+  | { page: 'manage-lessons'; courseId: string }
   | { page: 'quiz'; courseId: string; lessonId: string; quizId: string }
   | { page: 'student-dashboard' }
   | { page: 'teacher-dashboard' }

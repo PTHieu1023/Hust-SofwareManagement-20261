@@ -164,24 +164,38 @@ export const createLesson = async (req: AuthRequest, res: Response, next: NextFu
 
 // 2. Update Lesson Content
 export const updateLessonContent = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    try {
-        const { id } = req.params;
-        const teacherId = req.user!.id;
-        const { title, description, type, duration, contentUrl } = req.body;
+  try {
+    const { id } = req.params;
+    const teacherId = req.user!.id;
 
-        const updatedLesson = await lessonService.updateLessonContent(id, teacherId, {
-            title,
-            description,
-            type,
-            contentUrl, // URL mới hoặc undefined
-            duration: duration ? parseInt(duration) : undefined
-            
-        });
+    const {
+      title,
+      description,
+      type,
+      duration,
+      contentUrl,
+      order,
+      isPublished,
+    } = req.body;
 
-        return res.status(200).json(updatedLesson);
-    } catch (error) {
-        return next(error);
-    }
+    const updatedLesson = await lessonService.updateLessonContent(
+      id,
+      teacherId,
+      {
+        title,
+        description,
+        type,
+        contentUrl,
+        duration: duration !== undefined ? parseInt(duration) : undefined,
+        order: order !== undefined ? parseInt(order) : undefined,
+        isPublished,
+      }
+    );
+
+    return res.status(200).json(updatedLesson);
+  } catch (error) {
+    return next(error);
+  }
 };
 
 // 3. Toggle Publish

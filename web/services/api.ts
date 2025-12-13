@@ -8,6 +8,8 @@ import {
   CourseForAdmin,
   Pagination,
   AdminStatistics,
+  Lesson, LessonPayload,
+  
 } from "../types";
 
 export interface Credentials {
@@ -144,6 +146,8 @@ const getEnrollment = async (userId: string, courseId: string): Promise<Enrollme
     }
 };
 
+
+
 const enrollStudent = async (userId: string, courseId: string): Promise<Enrollment> => {
     const res = await httpClient.post('/enrollments', { userId, courseId });
     return res.data;
@@ -159,6 +163,39 @@ const unenrollStudent = async (userId: string, courseId: string): Promise<void> 
     if (res.status !== 200 && res.status !== 204) {
         throw new Error(`Failed to unenroll student with status: ${res.status}`);
     }
+};
+
+
+const uploadFile = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await httpClient.post('/uploads', formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data.url; 
+};
+
+// 2. Create Lesson
+const createLesson = async (data: LessonPayload): Promise<Lesson> => {
+    const res = await httpClient.post('/lesson', data);
+    return res.data;
+};
+
+// 3. Update Lesson
+const updateLesson = async (id: string, data: Partial<LessonPayload>): Promise<Lesson> => {
+    const res = await httpClient.put(`/lesson/${id}`, data);
+    return res.data;
+};
+
+// 4. Toggle Publish Lesson
+const toggleLessonPublish = async (id: string, isPublished: boolean): Promise<Lesson> => {
+    const res = await httpClient.patch(`/lesson/${id}/publish`, { isPublished });
+    return res.data;
+};
+
+// 5. Delete Lesson
+const deleteLesson = async (id: string): Promise<void> => {
+    await httpClient.delete(`/lesson/${id}`);
 };
 
 const getAllUsersForAdmin = async (params?: { page?: number; limit?: number; search?: string; role?: string; }): Promise<{ users: UserForAdmin[]; pagination: Pagination }> => {
@@ -231,6 +268,11 @@ export const api = {
   enrollStudent,
   completeLesson,
   unenrollStudent,
+  uploadFile,
+  createLesson,
+  updateLesson,
+  toggleLessonPublish,
+  deleteLesson,
   getAllUsersForAdmin,
   getAllCoursesForAdmin,
   getStatisticsForAdmin,

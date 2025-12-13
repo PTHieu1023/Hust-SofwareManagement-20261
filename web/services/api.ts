@@ -198,6 +198,11 @@ const deleteLesson = async (id: string): Promise<void> => {
     await httpClient.delete(`/lesson/${id}`);
 };
 
+// 6. Reorder Lessons for Teacher
+const reorderLessonsForTeacher = async (courseId: string, orderedLessonIds: string[]) => {
+  return httpClient.patch(`/lesson/teacher/course/${courseId}/reorder`, { orderedLessonIds });
+};
+
 const getAllUsersForAdmin = async (params?: { page?: number; limit?: number; search?: string; role?: string; }): Promise<{ users: UserForAdmin[]; pagination: Pagination }> => {
   try {
     const queryParams = new URLSearchParams();
@@ -273,6 +278,7 @@ export const api = {
   updateLesson,
   toggleLessonPublish,
   deleteLesson,
+  reorderLessonsForTeacher,
   getAllUsersForAdmin,
   getAllCoursesForAdmin,
   getStatisticsForAdmin,

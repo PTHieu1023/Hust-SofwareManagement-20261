@@ -6,16 +6,6 @@ import * as lessonController from '@/controllers/lesson.controller';
 
 const router: Router = Router();
 
-// Get lessons for a course
-router.get(
-    '/course/:courseId', 
-    [
-    param('courseId').isString().notEmpty().withMessage('courseId is required'),
-    validate,
-    ],
-    lessonController.getLessonsForStudentByCourse
-);
-
 /**
  * Protected routes (require authentication)
  * From here on, user must be logged in.
@@ -143,5 +133,12 @@ router.patch(
 );
 
 router.delete('/:id', authorize('TEACHER', 'ADMIN'), lessonController.deleteLesson);
+
+router.patch(
+  '/teacher/course/:courseId/reorder',
+  authorize('TEACHER'),
+  lessonController.reorderLessons
+);
+
 
 export default router;

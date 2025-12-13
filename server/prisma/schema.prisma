@@ -102,8 +102,8 @@ model Lesson {
   course   Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   progress Progress[]
 
-  @@index([courseId])
-  @@index([order])
+  @@unique([courseId, order])
+  @@index([courseId, order])
   @@map("lessons")
 }
 

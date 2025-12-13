@@ -3,6 +3,8 @@ import { Lesson, View, LessonType } from '../types';
 import { api } from '../services/api';
 import { PlayIcon, DocumentTextIcon, CheckCircleIcon, XCircleIcon } from '../components/icons'; // Giả sử icon đã có
 import LessonFormModal from '../components/LessonFormModal'; 
+import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 
 interface ManageLessonsPageProps {
   courseId: string;
@@ -66,6 +68,34 @@ const ManageLessonsPage: React.FC<ManageLessonsPageProps> = ({ courseId, setView
     }
   };
 
+  // 4. Handle Reorder
+  const [isReordering, setIsReordering] = useState(false);
+
+  const onDragEnd = async (result: DropResult) => {
+  if (!result.destination) return;
+  if (result.destination.index === result.source.index) return;
+
+  const prev = lessons;
+
+  const next: Lesson[] = Array.from(lessons);
+  const [moved] = next.splice(result.source.index, 1);
+  next.splice(result.destination.index, 0, moved);
+
+  const nextWithOrder: Lesson[] = next.map((lesson, idx) => ({...lesson, order: idx + 1,}));
+
+  setLessons(nextWithOrder);
+
+  try {
+    setIsReordering(true);
+    await api.reorderLessonsForTeacher(courseId, nextWithOrder.map(l => l.id));
+  } catch (e) {
+    setLessons(prev);
+    alert("Reorder failed. Please try again!");
+  } finally {
+    setIsReordering(false);
+  }
+};
+
   // Mở modal Create
   const handleCreate = () => {
     setSelectedLesson(null);
@@ -86,10 +116,10 @@ const ManageLessonsPage: React.FC<ManageLessonsPageProps> = ({ courseId, setView
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <button 
-            onClick={() => setView({ page: 'teacher-dashboard' })}
+            onClick={() => setView({ page: "course", id: courseId })}
             className="text-sm text-slate-500 hover:text-indigo-600 mb-2 flex items-center gap-1 transition"
           >
-            &larr; Back to Dashboard
+            &larr; Back to Course
           </button>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Course Content</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">Managing: <span className="font-semibold">{courseTitle}</span></p>
@@ -111,75 +141,123 @@ const ManageLessonsPage: React.FC<ManageLessonsPageProps> = ({ courseId, setView
             <button onClick={handleCreate} className="text-indigo-600 hover:underline font-medium">Create your first lesson</button>
           </div>
         ) : (
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs uppercase font-semibold tracking-wider">
-              <tr>
-                <th className="px-6 py-4 w-16 text-center">Order</th>
-                <th className="px-6 py-4">Title</th>
-                <th className="px-6 py-4 w-32">Type</th>
-                <th className="px-6 py-4 w-32">Status</th>
-                <th className="px-6 py-4 w-40 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-              {lessons.map((lesson) => (
-                <tr key={lesson.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition duration-150">
-                  <td className="px-6 py-4 text-center text-slate-400 font-mono">#{lesson.order}</td>
-                  
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-slate-800 dark:text-slate-200">{lesson.title}</div>
-                    {lesson.duration && lesson.duration > 0 && (
-                      <div className="text-xs text-slate-500 mt-0.5">{lesson.duration} min</div>
-                    )}
-                  </td>
+          <DragDropContext onDragEnd={onDragEnd}>
+  <table className="w-full text-left border-collapse">
+    <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 text-xs uppercase font-semibold tracking-wider">
+      <tr>
+        <th className="px-6 py-4 w-16 text-center">Order</th>
+        <th className="px-6 py-4">Title</th>
+        <th className="px-6 py-4 w-32">Type</th>
+        <th className="px-6 py-4 w-32">Status</th>
+        <th className="px-6 py-4 w-40 text-right">Actions</th>
+      </tr>
+    </thead>
 
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      lesson.type === LessonType.VIDEO 
-                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300' 
-                        : 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300'
-                    }`}>
-                      {lesson.type === LessonType.VIDEO ? <PlayIcon className="w-3 h-3"/> : <DocumentTextIcon className="w-3 h-3"/>}
-                      {lesson.type}
-                    </span>
-                  </td>
+    <Droppable droppableId="lessons">
+      {(dropProvided) => (
+        <tbody
+          ref={dropProvided.innerRef}
+          {...dropProvided.droppableProps}
+          className="divide-y divide-slate-100 dark:divide-slate-700"
+        >
+          {lessons.map((lesson, index) => (
+            <React.Fragment key={lesson.id}>
+              <Draggable
+                draggableId={lesson.id}
+                index={index}
+                isDragDisabled={isReordering}
+              >
+                {(dragProvided, snapshot) => (
+                  <tr
+                    ref={dragProvided.innerRef}
+                    {...dragProvided.draggableProps}
+                    className={[
+                      "hover:bg-slate-50 dark:hover:bg-slate-700/30 transition duration-150",
+                      snapshot.isDragging ? "bg-slate-100 dark:bg-slate-700/50" : "",
+                    ].join(" ")}
+                  >
+                    {/* ORDER + Drag Handle */}
+                    <td className="px-6 py-4 text-center text-slate-400 font-mono">
+                      <div className="inline-flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          {...dragProvided.dragHandleProps}
+                          className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                          title="Drag to reorder"
+                        >
+                          <Bars3Icon className="w-4 h-4" />
+                        </button>
+                        <span>#{lesson.order}</span>
+                      </div>
+                    </td>
 
-                  <td className="px-6 py-4">
-                    <button 
-                      onClick={() => handleTogglePublish(lesson)}
-                      className={`group flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border ${
-                        lesson.isPublished 
-                        ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400' 
-                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400'
-                      }`}
-                    >
-                      {lesson.isPublished ? <CheckCircleIcon className="w-3.5 h-3.5"/> : <XCircleIcon className="w-3.5 h-3.5"/>}
-                      {lesson.isPublished ? 'Published' : 'Draft'}
-                    </button>
-                  </td>
+                    {/* TITLE */}
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-slate-800 dark:text-slate-200"> {lesson.title} </div>
+                      {lesson.duration && lesson.duration > 0 && (
+                        <div className="text-xs text-slate-500 mt-0.5"> {lesson.duration} min </div>
+                      )}
+                    </td>
 
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end items-center gap-3">
-                      <button 
-                        onClick={() => handleEdit(lesson)}
-                        className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium transition"
-                      >
-                        Edit
+                    {/* TYPE */}
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          lesson.type === LessonType.VIDEO
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+                            : "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300"
+                        }`}>
+                        {lesson.type === LessonType.VIDEO ? ( <PlayIcon className="w-3 h-3" /> ) : ( <DocumentTextIcon className="w-3 h-3" /> )}
+                        {lesson.type}
+                      </span>
+                    </td>
+
+                    {/* STATUS */}
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleTogglePublish(lesson)}
+                        className={`group flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold transition-all border ${
+                          lesson.isPublished
+                            ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
+                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400"
+                        }`}>
+                        {lesson.isPublished ? ( <CheckCircleIcon className="w-3.5 h-3.5" /> ) : ( <XCircleIcon className="w-3.5 h-3.5" /> )}
+                        {lesson.isPublished ? "Published" : "Draft"}
                       </button>
-                      <button 
-                        onClick={() => handleDelete(lesson.id)}
-                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                    </td>
+
+                    {/* ACTIONS */}
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end items-center gap-3">
+                        <button
+                          onClick={() => handleEdit(lesson)}
+                          className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-sm font-medium transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(lesson.id)}
+                          className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Draggable>
+            </React.Fragment>
+          ))}
+
+          {dropProvided.placeholder}
+        </tbody>
+      )}
+    </Droppable>
+  </table>
+</DragDropContext>
+          
+  )}
+</div>
 
       {/* Render Modal */}
       {showModal && (

@@ -119,6 +119,21 @@ const togglePublish = async (id: string, isPublished: boolean): Promise<Course> 
     return res.data.course || res.data;
 };
 
+const getLessonDetail = async (lessonId: string) => {
+  const res = await httpClient.get(`/lesson/${lessonId}`);
+  return res.data;  // { lesson, prevLessonId, nextLessonId }
+};
+
+const getLessonDetailForTeacher = async (lessonId: string) => {
+  const res = await httpClient.get(`/lesson/teacher/lesson/${lessonId}`);
+  return res.data; // { lesson, prevLessonId, nextLessonId }
+};
+
+const getLessonsForTeacherByCourse = async (courseId: string) => {
+  const res = await httpClient.get(`/lesson/teacher/course/${courseId}`);
+  return res.data;
+};
+
 const getEnrollment = async (userId: string, courseId: string): Promise<Enrollment | null> => {
     try {
         const res = await httpClient.get(`/enrollments/${userId}/${courseId}`);
@@ -207,7 +222,10 @@ export const api = {
   getMyCourses, 
   createCourse, 
   updateCourse, 
-  deleteCourse, 
+  deleteCourse,
+  getLessonDetail,
+  getLessonDetailForTeacher, 
+  getLessonsForTeacherByCourse,
   togglePublish, 
   getEnrollment,
   enrollStudent,

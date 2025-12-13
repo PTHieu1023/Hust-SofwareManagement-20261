@@ -285,20 +285,77 @@ export const updateLessonPublishStatus = async (
  * @returns Promise<void>
  */
 const deleteLesson = async (lessonId: string, teacherId: string): Promise<void> => {
-    const lesson = await prisma.lesson.findUnique({
-      where: { id: lessonId},
-      include: { course: true}
+  await prisma.$transaction(async (tx) => {
+    const lesson = await tx.lesson.findUnique({
+      where: { id: lessonId },
+      include: { course: true },
     });
 
-    if (!lesson) throw new Error('Lesson not found');
-    if (lesson.course.teacherId !== teacherId){
-      throw new Error('You have no permission to delete this lesson');
+    if (!lesson) throw new Error("Lesson not found");
+    if (lesson.course.teacherId !== teacherId) {
+      throw new Error("You have no permission to delete this lesson");
     }
 
-    await prisma.lesson.delete({
-      where: {id: lessonId}
+    // Xoá lesson
+    await tx.lesson.delete({ where: { id: lessonId } });
+
+    // Re-index order trong cùng course
+    const remain = await tx.lesson.findMany({
+      where: { courseId: lesson.courseId },
+      orderBy: { order: "asc" },
+      select: { id: true },
     });
-}
+
+    // Gán lại order từ 1..n
+    await Promise.all( remain.map((l, i) => tx.lesson.update({
+          where: { id: l.id },
+          data: { order: i + 1 },
+        }),
+      ),
+    );
+  });
+};
+
+const reorderLessons = async ( courseId: string, teacherId: string, orderedLessonIds: string[], ): Promise<void> => {
+  await prisma.$transaction(async (tx) => {
+    const course = await tx.course.findUnique({
+      where: { id: courseId },
+      select: { teacherId: true },
+    });
+
+    if (!course) throw new Error('COURSE_NOT_FOUND');
+    if (course.teacherId !== teacherId) throw new Error('FORBIDDEN');
+
+    const existing = await tx.lesson.findMany({
+      where: { courseId },
+      select: { id: true },
+      orderBy: { order: 'asc' },
+    });
+
+    // Validate: đủ số lượng + đúng id
+    const dbIds = new Set(existing.map((l) => l.id));
+    if (
+      orderedLessonIds.length !== existing.length ||
+      orderedLessonIds.some((id) => !dbIds.has(id))
+    ) {
+      throw new Error('INVALID_ORDER');
+    }
+
+    // Phase 1: đẩy order lên cao để tránh conflict unique
+    await tx.lesson.updateMany({
+      where: { courseId },
+      data: { order: { increment: 1000 } },
+    });
+
+    // Phase 2: set lại 1..n theo thứ tự mới
+    for (let i = 0; i < orderedLessonIds.length; i++) {
+      await tx.lesson.update({
+        where: { id: orderedLessonIds[i] },
+        data: { order: i + 1 },
+      });
+    }
+  });
+};
 
 export default {
     getLessonDetailForStudent,
@@ -308,4 +365,5 @@ export default {
     updateLessonContent,
     updateLessonPublishStatus,
     deleteLesson,
+    reorderLessons,
 };

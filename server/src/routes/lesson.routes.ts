@@ -134,4 +134,11 @@ router.patch(
 
 router.delete('/:id', authorize('TEACHER', 'ADMIN'), lessonController.deleteLesson);
 
+router.patch(
+  '/teacher/course/:courseId/reorder',
+  authorize('TEACHER'),
+  lessonController.reorderLessons
+);
+
+
 export default router;

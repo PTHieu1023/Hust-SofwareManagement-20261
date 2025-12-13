@@ -188,7 +188,6 @@ export const deleteLesson = async (req: AuthRequest, res: Response, _next: NextF
     try {
         const { id } = req.params;
         const teacherId = req.user!.id;
-
         await lessonService.deleteLesson(id, teacherId);
 
         return res.status(200).json({ message: 'Lesson deleted successfully' });
@@ -197,3 +196,17 @@ export const deleteLesson = async (req: AuthRequest, res: Response, _next: NextF
     }
 };
 
+// 4. Reorder Lessons
+export const reorderLessons = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { courseId } = req.params;
+    const teacherId = req.user!.id;
+    const { orderedLessonIds } = req.body as { orderedLessonIds: string[] };
+
+    await lessonService.reorderLessons(courseId, teacherId, orderedLessonIds);
+
+    return res.status(200).json({ message: 'Reordered successfully' });
+  } catch (err) {
+    return next(err);
+  }
+};

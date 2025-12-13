@@ -218,6 +218,12 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
                                 >
                                     Edit Course
                                 </button>
+                                <button 
+                                    onClick={() => setView({ page: 'manage-lessons', courseId: course.id })}
+                                    className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition-colors"
+                                >
+                                    Manage Lessons
+                                </button>
                             </div>
                         ) : (
                              // Guest

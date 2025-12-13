@@ -10,6 +10,9 @@ import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import QuizPage from './pages/QuizPage';
+import CreateCoursePage from './pages/CreateCoursePage';
+import EditCoursePage from './pages/EditCoursePage';
+import LessonPage from './pages/LessonPage.tsx';
 
 const App: React.FC = () => {
   return (
@@ -41,6 +44,12 @@ const Main: React.FC = () => {
         return <AdminDashboard setView={setView} />;
       case 'quiz':
          return <QuizPage setView={setView} courseId={view.courseId} lessonId={view.lessonId} quizId={view.quizId} />;
+      case 'create-course':
+        return <CreateCoursePage setView={setView} />;
+      case 'edit-course':
+        return <EditCoursePage courseId={view.id} setView={setView} />;
+      case 'lesson':
+        return <LessonPage setView={setView} courseId={view.courseId} lessonId={view.lessonId} />;
       default:
         return <HomePage setView={setView} />;
     }

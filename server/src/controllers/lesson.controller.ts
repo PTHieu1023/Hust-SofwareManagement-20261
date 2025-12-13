@@ -94,7 +94,40 @@ export const getLessonsForTeacherByCourse = async (req: AuthRequest, res: Respon
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
-    
+
+export const getLessonDetailForTeacher = async (
+  req: AuthRequest,
+  res: Response,
+  _next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const result = await lessonService.getLessonDetailForTeacher(id, user.id, user.role);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("getLessonDetailForTeacher error:", error);
+
+    if (error instanceof Error) {
+      if (error.message === "LESSON_NOT_FOUND") {
+        return res.status(404).json({ message: "Lesson not found" });
+      }
+      if (error.message === "FORBIDDEN_LESSON") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+    }
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
 export const getLessonsForTeacher = async (req: AuthRequest, res: Response, _next: NextFunction) => {
     try {
         const { courseId } = req.params;

@@ -36,6 +36,18 @@ router.get(
 
 // Teacher-only routes
 
+// Teacher/Admin: Get lesson detail (published + unpublished)
+// GET /api/lesson/teacher/lesson/:id
+router.get(
+  "/teacher/lesson/:id",
+  authorize("TEACHER", "ADMIN"),
+  [
+    param("id").isString().notEmpty().withMessage("lesson id is required"),
+    validate,
+  ],
+  lessonController.getLessonDetailForTeacher
+);
+
 /**
  * Manage lessons for a course
  * -> GET /api/lesson/teacher/course/:courseId

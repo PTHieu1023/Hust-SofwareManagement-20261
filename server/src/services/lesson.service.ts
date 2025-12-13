@@ -1,7 +1,7 @@
 import { Lesson } from '@prisma/client';
 import prisma from '@/config/prisma.config';
 
-export interface LessonDetailForStudent {
+export interface LessonDetail {
   lesson: Lesson;
   prevLessonId: string | null;
   nextLessonId: string | null;
@@ -37,7 +37,7 @@ const getLessonsByCourse = async (courseId: string): Promise<Lesson[]> => {
 const getLessonDetailForStudent = async (
   lessonId: string,
   userId: string,
-): Promise<LessonDetailForStudent> => {
+): Promise<LessonDetail> => {
   // Take lesson by id
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
@@ -124,6 +124,45 @@ const getLessonsForTeacherByCourse = async (
 
   return lessons;
 };
+
+const getLessonDetailForTeacher = async (
+  lessonId: string,
+  userId: string,
+  role: string
+): Promise<LessonDetail> => {
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    include: { course: true },
+  });
+
+  if (!lesson) throw new Error("LESSON_NOT_FOUND");
+
+  // ADMIN xem mọi course, TEACHER chỉ xem course mình tạo
+  const isAdmin = role === "ADMIN";
+  const isOwnerTeacher = role === "TEACHER" && lesson.course.teacherId === userId;
+
+  if (!isAdmin && !isOwnerTeacher) {
+    throw new Error("FORBIDDEN_LESSON");
+  }
+
+  const [prevLesson, nextLesson] = await Promise.all([
+    prisma.lesson.findFirst({
+      where: { courseId: lesson.courseId, order: { lt: lesson.order } }, // không filter isPublished
+      orderBy: { order: "desc" },
+    }),
+    prisma.lesson.findFirst({
+      where: { courseId: lesson.courseId, order: { gt: lesson.order } }, // không filter isPublished
+      orderBy: { order: "asc" },
+    }),
+  ]);
+
+  return {
+    lesson,
+    prevLessonId: prevLesson?.id ?? null,
+    nextLessonId: nextLesson?.id ?? null,
+  };
+};
+
 
 /**
  * - Verify teacher owns the course
@@ -267,6 +306,7 @@ export default {
     getLessonsByCourse,
     getLessonDetailForStudent,
     getLessonsForTeacherByCourse,
+    getLessonDetailForTeacher,
     createLesson,
     updateLessonContent,
     updateLessonPublishStatus,

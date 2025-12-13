@@ -8,7 +8,7 @@ import env from '@/utils/env.utils';
 import cors from 'cors';
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
-
+import path from 'path';
 
 const bootstrap = async () => {
     const app: express.Application = express();
@@ -22,7 +22,7 @@ const bootstrap = async () => {
         app.use(express.urlencoded({ extended: true }));
 
         // Serve static files (uploads)
-        app.use('/uploads', express.static(env.UPLOAD_DIR));
+        app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
         // Health check
         app.get('/health', (_, res) => {

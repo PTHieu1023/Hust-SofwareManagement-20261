@@ -3,24 +3,6 @@ import { NextFunction, Response } from 'express';
 import lessonService from '@/services/lesson.service';
 
 /**
- * Get lessons of a course for student (public)
- * Used on course detail page to show lesson list.
- */
-export const getLessonsForStudentByCourse = async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    try {
-    const { courseId } = req.params;
-
-    // Gọi service lấy danh sách lesson đã publish
-    const lessons = await lessonService.getLessonsByCourse(courseId);
-
-    return res.status(200).json(lessons);
-  } catch (error) {
-    console.error('getLessonsForStudentByCourse error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-/**
  * Get lesson detail (view content)
  * Requires authentication. Students must be enrolled in the course.
  */
@@ -128,17 +110,6 @@ export const getLessonDetailForTeacher = async (
 };
 
 
-export const getLessonsForTeacher = async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    try {
-        const { courseId } = req.params;
-        const teacherId = req.user!.id; // AuthRequest đảm bảo user tồn tại
-
-        const lessons = await lessonService.getLessonsForTeacherByCourse(courseId, teacherId);
-        return res.status(200).json(lessons);
-    } catch (error) {
-        return _next(error);
-    }
-};
 export const createLesson = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const teacherId = req.user!.id;

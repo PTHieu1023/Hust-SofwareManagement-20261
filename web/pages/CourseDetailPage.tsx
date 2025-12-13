@@ -27,11 +27,23 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
       try {
         // 1. Lấy thông tin khóa học (Backend đã include teacher và lessons)
         const courseData = await api.getCourseById(courseId);
-        setCourse(courseData);
+
+        // Nếu là teacher của khóa học -> lấy full lesson list (kể cả unpublish)
+        let lessons = courseData.lessons ?? [];
+        const isTeacherOwner =
+            user?.role === UserRole.Teacher && user.id === courseData.teacherId;
+
+        if (isTeacherOwner) {
+            const teacherLessons = await api.getLessonsForTeacherByCourse(courseId);
+            lessons = teacherLessons; // full list
+        }
+
+        // setCourse sau khi đã có lessons đúng
+        setCourse({ ...courseData, lessons });
 
         // 2. CourseData trả về teacher object bên trong -> set
         if(courseData.teacher) {
-
+            setTeacher(courseData.teacher);
         } else if (courseData.teacherId) {
              // Fallback: Backend chưa include teacher -> gọi API rời
              const teacherData = await api.getUserById(courseData.teacherId);
@@ -111,15 +123,17 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
            .then((updated) => setEnrollment(updated))
            .catch(err => console.error(err));
     }
-    
-    // Tạm thời alert, chuyển view sang trang xem video sau
-    alert(`Playing lesson: ${lesson.title}\n(Content URL: ${lesson.contentUrl || 'N/A'})`);
+    // 
+    setView({ page: 'lesson', courseId: courseId, lessonId: lesson.id });
   };
 
   if (loading) return <div className="text-center py-20 text-slate-500">Loading course details...</div>;
   if (!course) return <div className="text-center py-20 text-red-500">Course not found or Access Denied.</div>;
 
-  const isEnrolled = !!enrollment;
+  //const isEnrolled = !!enrollment;
+  const FORCE_ENROLLED = true; // TODO: bỏ khi nhóm enroll làm xong
+  const isEnrolled = FORCE_ENROLLED || !!enrollment;
+
   const isTeacher = user?.id === course.teacherId;
   const isAdmin = user?.role === UserRole.Admin;
   
@@ -216,59 +230,70 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
             </div>
         </div>
 
-        {/* CONTENT SECTION */}
-        <div className="grid md:grid-cols-3 gap-8">
+                {/* CONTENT SECTION */}
+        <div className="grid md:grid-cols-3 gap-8 items-start">
             <div className="md:col-span-2">
                 <h2 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Course Content</h2>
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow overflow-hidden border border-slate-200 dark:border-slate-700/50">
                     {course.lessons && course.lessons.length > 0 ? (
-                        <ul className="divide-y divide-slate-100 dark:divide-slate-700">
-                            {course.lessons.map((lesson, index) => {
+                        <ul className="p-6 space-y-5">
+                            {course.lessons.map((lesson) => {
                                 const isCompleted = enrollment?.completedLessons.includes(lesson.id) ?? false;
                                 // Lock bài học nếu là Student chưa enroll. Teacher/Admin xem được hết.
-                                const isLocked = user?.role === UserRole.Student && !isEnrolled;
+                                const canAccessLesson = isTeacher || isAdmin || (user?.role === UserRole.Student && isEnrolled);
 
                                 return (
-                                    <li key={lesson.id} className={`p-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${isLocked ? 'opacity-70' : ''}`}>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-slate-400 font-mono text-sm w-6">#{index + 1}</span>
-                                                <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded text-indigo-600 dark:text-indigo-400">
-                                                    {lesson.type === 'VIDEO' ? <PlayIcon className="h-5 w-5" /> : <DocumentTextIcon className="h-5 w-5" />}
-                                                </div>
-                                                <div>
-                                                    <h4 className={`font-medium ${isCompleted ? 'text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'}`}>
-                                                        {lesson.title}
-                                                    </h4>
-                                                    <span className="text-xs text-slate-500 uppercase">{lesson.type}</span>
-                                                </div>
+                                    <li
+                                        key={lesson.id}
+                                        className={`flex items-center justify-between rounded-2xl px-3 py-2 border transition-colors ${!canAccessLesson
+                                                ? 'bg-slate-50 dark:bg-slate-700/20 border-slate-200 dark:border-slate-700/30 opacity-60 cursor-not-allowed'
+                                                : 'bg-slate-50 dark:bg-slate-700/40 border-slate-200 dark:border-slate-700/40 hover:bg-slate-100 dark:hover:bg-slate-700/60'}`}>
+                                        <div className="flex items-center gap-4 min-w-0">
+                                            <div className="h-12 w-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/30 flex items-center justify-center shrink-0">
+                                                {lesson.type === 'VIDEO' ? (<PlayIcon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                                                ) : (<DocumentTextIcon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />)}
                                             </div>
 
-                                            <div className="flex items-center gap-3">
-                                                {isCompleted && <CheckCircleIcon className="h-6 w-6 text-green-500" />}
-                                                
-                                                {/* Nút Quiz (nếu có) */}
-                                                {lesson.quiz && isEnrolled && (
-                                                   <button
-                                                     onClick={() => setView({ page: 'quiz', courseId: course.id, lessonId: lesson.id, quizId: lesson.quiz!.id })}
-                                                     className="px-3 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-full hover:bg-indigo-200 dark:bg-indigo-900 dark:text-indigo-200"
-                                                   >
-                                                     Quiz
-                                                   </button>
-                                                )}
-
-                                                {/* Nút View / Locked */}
-                                                {isLocked ? (
-                                                    <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded">Locked</span>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => handleLessonClick(lesson)}
-                                                        className="px-3 py-1 text-sm bg-indigo-50 text-indigo-600 font-medium rounded hover:bg-indigo-100 dark:bg-slate-700 dark:text-indigo-300 dark:hover:bg-slate-600 transition"
-                                                    >
-                                                        Watch
-                                                    </button>
-                                                )}
+                                            <div className="min-w-0">
+                                                <h4 className={`text-lg font-semibold truncate ${isCompleted? 'text-slate-500 line-through' : 'text-slate-800 dark:text-slate-100'}`}>
+                                                    {lesson.title}
+                                                </h4>
                                             </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 shrink-0">
+                                            {isCompleted && <CheckCircleIcon className="h-6 w-6 text-green-500" />}
+
+                                            {/* Nút Quiz (nếu có) */}
+                                            {lesson.quiz && isEnrolled && (
+                                                <button
+                                                    onClick={() =>
+                                                        setView({
+                                                            page: 'quiz',
+                                                            courseId: course.id,
+                                                            lessonId: lesson.id,
+                                                            quizId: lesson.quiz!.id,
+                                                        })
+                                                    }
+                                                    className="px-4 py-2 text-sm font-semibold rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60 transition"
+                                                >
+                                                    Quiz
+                                                </button>
+                                            )}
+
+                                            {/* Nút View / Locked */}
+                                            {!canAccessLesson ? (
+                                                <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full border border-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:border-slate-700">
+                                                    Locked
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleLessonClick(lesson)}
+                                                    className="px-5 py-2 text-sm font-semibold rounded-full bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 transition"
+                                                >
+                                                    Watch
+                                                </button>
+                                            )}
                                         </div>
                                     </li>
                                 );
@@ -283,7 +308,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, setView }
             </div>
 
             {/* Sidebar info */}
-            <div className="md:col-span-1">
+            <div className="md:col-span-1 mt-12">
                  <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow border border-slate-200 dark:border-slate-700 sticky top-4">
                     <h3 className="font-bold text-lg mb-4 text-slate-900 dark:text-white">Course Features</h3>
                     <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-300">

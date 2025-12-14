@@ -1,46 +1,67 @@
-import { User } from '@prisma/client';
-import prisma from '@/config/prisma.config';
+import { NextFunction, Response } from 'express';
+import { AuthRequest } from '@/middleware/auth.middleware';
+import progressService from '@/services/progress.service';
+type MarkLessonCompleteDto = { lessonId: string, courseId: string };
 
-/**
- * - Query database for user by id
- * - Exclude password from result
- * @param userId - User ID
- * @returns Promise<User | null>
- */
-const getUserById = async (userId: string): Promise<Omit<User, 'password'> | null> => {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+export const markLessonComplete = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        // Lấy studentId từ token đã xác thực
+        const studentId = req.user?.id; 
+        const lessonId = req.params.lessonId;
+        const { courseId } = req.body as { courseId: string };
+        if (!studentId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
 
-    if (!user) return null;
+        // Gọi service để xử lý logic: cập nhật progress, kiểm tra hoàn thành, v.v.
+        const result = await progressService.markLessonComplete(studentId, lessonId, courseId);        
+        return res.status(200).json({ 
+            message: 'Lesson marked as completed successfully', 
+            data: result 
+        });
+    } catch (error) {
+        next(error); // Chuyển lỗi đến Error Handler Middleware
+    }
+};
+    
+export const getCourseProgress = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const studentId = req.user?.id;
+        // Giả sử courseId được truyền qua URL params: /progress/course/:courseId
+        const courseId = req.params.courseId;
 
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-}
+        if (!studentId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
 
-/**
- * - Update user data (fullName, avatar, etc.)
- * - Return updated user without password
- * @param userId - User ID
- * @param data - Update data
- * @returns Promise<User>
- */
-const updateProfile = async (
-    userId: string,
-    data: { fullName?: string; avatar?: string }
-): Promise<Omit<User, 'password'>> => {
-    const updateData: any = {};
-    if (data.fullName !== undefined) updateData.fullName = data.fullName;
-    if (data.avatar !== undefined) updateData.avatar = data.avatar;
+        // Gọi service để tính toán hoặc lấy tiến độ khóa học
+        const progress = await progressService.getCourseProgress(studentId, courseId);
 
-    const user = await prisma.user.update({
-        where: { id: userId },
-        data: updateData
-    });
+        return res.status(200).json({ 
+            message: 'Course progress retrieved successfully', 
+            data: progress 
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+    
+export const getMyProgress = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const studentId = req.user?.id;
+        
+        if (!studentId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        
+        // Gọi service để lấy danh sách các khóa học đã đăng ký cùng với tiến độ của từng khóa
+        const overallProgress = await progressService.getStudentProgress(studentId);
 
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-}
-
-export default {
-    getUserById,
-    updateProfile,
+        return res.status(200).json({ 
+            message: 'Overall progress retrieved successfully', 
+            data: overallProgress 
+        });
+    } catch (error) {
+        next(error);
+    }
 };

@@ -1,4 +1,5 @@
 import { Course } from '@prisma/client';
+import prisma from '@/config/prisma.config';
 
 
 /**
@@ -8,13 +9,35 @@ import { Course } from '@prisma/client';
  * @param filters - Course filters (category, level, search)
  * @returns Promise<Course[]>
  */
-const getAllCourses = async (_filters: {
+const getAllCourses = async (filters: {
     category?: string;
     level?: string;
     search?: string;
 }): Promise<Course[]> => {
-    // TODO: Implement get all courses with filters
-    throw new Error('Not implemented');
+    const where: any = { isPublished: true };
+
+    if (filters?.category) where.category = filters.category;
+    if (filters?.level) where.level = filters.level;
+
+    if (filters?.search) {
+        const q = filters.search;
+        where.OR = [
+            { title: { contains: q, mode: 'insensitive' } },
+            { description: { contains: q, mode: 'insensitive' } }
+        ];
+    }
+
+    const courses = await prisma.course.findMany({
+        where,
+        include: {
+            teacher: true,
+            _count: {
+                select: { enrollments: true, lessons: true }
+            }
+        }
+    });
+
+    return courses;
 }
 
 /**
@@ -23,9 +46,22 @@ const getAllCourses = async (_filters: {
  * @param courseId - Course ID
  * @returns Promise<Course | null>
  */
-const getCourseById = async (_courseId: string): Promise<Course | null> => {
-    // TODO: Implement get course by id
-    throw new Error('Not implemented');
+const getCourseById = async (courseId: string): Promise<Course | null> => {
+    const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        include: {
+            teacher: true,
+            lessons: true,
+            quizzes: true,
+            _count: { select: { enrollments: true } }
+        }
+    });
+
+    if (!course) return null;
+    // Only return published courses in public routes
+    if (!course.isPublished) return null;
+
+    return course;
 }
 
 /**
@@ -37,8 +73,8 @@ const getCourseById = async (_courseId: string): Promise<Course | null> => {
  * @returns Promise<Course>
  */
 const createCourse = async (
-    _teacherId: string,
-    _data: {
+    teacherId: string,
+    data: {
         title: string;
         description?: string;
         category?: string;
@@ -46,8 +82,19 @@ const createCourse = async (
         thumbnail?: string;
     }
 ): Promise<Course> => {
-    // TODO: Implement course creation
-    throw new Error('Not implemented');
+    const created = await prisma.course.create({
+        data: {
+            title: data.title,
+            description: data.description ?? null,
+            category: data.category ?? null,
+            level: data.level ?? null,
+            thumbnail: data.thumbnail ?? null,
+            teacherId,
+            isPublished: false
+        }
+    });
+
+    return created;
 }
 
 /**
@@ -59,9 +106,9 @@ const createCourse = async (
  * @returns Promise<Course>
  */
 const updateCourse = async (
-    _courseId: string,
-    _teacherId: string,
-    _data: {
+    courseId: string,
+    teacherId: string,
+    data: {
         title?: string;
         description?: string;
         category?: string;
@@ -69,8 +116,22 @@ const updateCourse = async (
         thumbnail?: string;
     }
 ): Promise<Course> => {
-    // TODO: Implement course update
-    throw new Error('Not implemented');
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) throw new Error('Course not found');
+    if (course.teacherId !== teacherId) throw new Error('Unauthorized');
+
+    const updated = await prisma.course.update({
+        where: { id: courseId },
+        data: {
+            title: data.title ?? course.title,
+            description: data.description ?? course.description,
+            category: data.category ?? course.category,
+            level: data.level ?? course.level,
+            thumbnail: data.thumbnail ?? course.thumbnail
+        }
+    });
+
+    return updated;
 }
 
 /**
@@ -80,9 +141,12 @@ const updateCourse = async (
  * @param teacherId - Teacher user ID
  * @returns Promise<void>
  */
-const deleteCourse = async (_courseId: string, _teacherId: string): Promise<void> => {
-    // TODO: Implement course deletion
-    throw new Error('Not implemented');
+const deleteCourse = async (courseId: string, teacherId: string): Promise<void> => {
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) throw new Error('Course not found');
+    if (course.teacherId !== teacherId) throw new Error('Unauthorized');
+
+    await prisma.course.delete({ where: { id: courseId } });
 }
 
 /**
@@ -92,9 +156,17 @@ const deleteCourse = async (_courseId: string, _teacherId: string): Promise<void
  * @param teacherId - Teacher user ID
  * @returns Promise<Course>
  */
-const togglePublish = async (_courseId: string, _teacherId: string): Promise<Course> => {
-    // TODO: Implement publish toggle
-    throw new Error('Not implemented');
+const togglePublish = async (courseId: string, teacherId: string): Promise<Course> => {
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) throw new Error('Course not found');
+    if (course.teacherId !== teacherId) throw new Error('Unauthorized');
+
+    const updated = await prisma.course.update({
+        where: { id: courseId },
+        data: { isPublished: !course.isPublished }
+    });
+
+    return updated;
 }
 
 export default {

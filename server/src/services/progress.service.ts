@@ -1,59 +1,52 @@
 import { Progress } from '@prisma/client';
-import prisma from '@/config/prisma.config';
+import prisma from '../config/prisma.config';
 /**
  * - Verify student is enrolled
  * - Create/update progress record
  * - Update enrollment overall progress percentage
  * @param studentId - Student user ID
  * @param lessonId - Lesson ID
+ * @param courseId - Course ID
  * @returns Promise<Progress>
  */
-const markLessonComplete = async (studentId: string, lessonId: string): Promise<Progress> => {
-    // Get lesson to find course
-    const lesson = await prisma.lesson.findUnique({
-        where: { id: lessonId },
-        include: { course: true }
-    });
-
-    if (!lesson) {
-        throw new Error('Lesson not found');
-    }
-
-    // Verify student is enrolled
-    const enrollment = await prisma.enrollment.findFirst({
-        where: {
-            studentId,
-            courseId: lesson.courseId
-        }
+const markLessonComplete = async (studentId: string, lessonId: string, courseId: string): Promise<Progress> => {
+    const enrollment = await prisma.enrollment.findUnique({
+        where: { studentId_courseId: { studentId, courseId } },
     });
 
     if (!enrollment) {
-        throw new Error('Student is not enrolled in this course');
+        throw new Error('Student is not enrolled in this course.');
     }
 
-    // Create or update progress record
-    const progress = await prisma.progress.upsert({
+    const lesson = await prisma.lesson.findUnique({
+        where: { id: lessonId },
+    });
+
+    if (!lesson) {
+        throw new Error('Lesson not found.');
+    }
+
+    // 2. Tạo hoặc cập nhật record Progress
+    const progressRecord = await prisma.progress.upsert({
         where: {
             studentId_lessonId: {
                 studentId,
-                lessonId
+                lessonId,
             }
         },
-        update: {
-            completedAt: new Date()
-        },
+        update: { completedAt: new Date() }, 
         create: {
             studentId,
             lessonId,
-            courseId: lesson.courseId, // Add this
-            completedAt: new Date()
+            courseId,
+            completedAt: new Date(),
         }
     });
 
-    // Update enrollment overall progress percentage
-    await updateEnrollmentProgress(studentId, lesson.courseId);
+    // 3. Cập nhật tiến độ tổng thể của Enrollment (luôn gọi sau khi hoàn thành Lesson)
+    await updateEnrollmentProgress(studentId, courseId);
 
-    return progress;
+    return progressRecord;
 }
 
 /**
@@ -66,29 +59,34 @@ const markLessonComplete = async (studentId: string, lessonId: string): Promise<
 const getCourseProgress = async (
     studentId: string,
     courseId: string
-): Promise<{ progress: Progress[]; overallProgress: number }> => {
-    // Get all lessons in the course
-    const lessons = await prisma.lesson.findMany({
-        where: { courseId }
+): Promise<{ progress: Progress[]; overallProgress: number; totalLessons: number }> => {
+    const enrollment = await prisma.enrollment.findUnique({
+        where: { studentId_courseId: { studentId, courseId } },
+        select: { progress: true }
     });
 
-    if (lessons.length === 0) {
-        return { progress: [], overallProgress: 0 };
+    if (!enrollment) {
+        throw new Error('Student not enrolled in this course.');
     }
 
-    // Get all progress records for the student in this course
-    const progress = await prisma.progress.findMany({
+    // 2. Lấy tất cả các bài học đã hoàn thành
+    const completedProgresses = await prisma.progress.findMany({
         where: {
             studentId,
             lesson: { courseId }
-        },
-        include: { lesson: true }
+        }
+    });
+    
+    // 3. Lấy tổng số bài học (để client có thể tính lại hoặc hiển thị)
+    const totalLessonsCount = await prisma.lesson.count({
+        where: { courseId }
     });
 
-    // Calculate overall progress percentage
-    const overallProgress = (progress.length / lessons.length) * 100;
-
-    return { progress, overallProgress: Math.round(overallProgress) };
+    return {
+        progress: completedProgresses,
+        overallProgress: enrollment.progress, // Sử dụng giá trị đã tính toán và lưu trong Enrollment
+        totalLessons: totalLessonsCount
+    };
 }
 
 /**
@@ -98,33 +96,30 @@ const getCourseProgress = async (
  * @returns Promise<any[]>
  */
 const getStudentProgress = async (studentId: string): Promise<any[]> => {
-    // Get all enrollments for the student
     const enrollments = await prisma.enrollment.findMany({
         where: { studentId },
-        include: { 
-            course: true
+        include: {
+            course: {
+                select: {
+                    id: true,
+                    title: true,
+                    description: true,
+                    thumbnail: true,
+                }
+            }
         }
     });
 
-    // Get progress for each course
-    const progressData = await Promise.all(
-        enrollments.map(async (enrollment) => {
-            const { progress, overallProgress } = await getCourseProgress(
-                studentId,
-                enrollment.courseId
-            );
-
-            return {
-                course: enrollment.course,
-                progress,
-                overallProgress,
-                enrolledAt: enrollment.enrolledAt,
-                completedAt: enrollment.completedAt
-            };
-        })
-    );
-
-    return progressData;
+    // Định dạng dữ liệu trả về
+    const studentProgressData = enrollments.map((e: typeof enrollments[number]) => ({
+        courseId: e.courseId,
+        courseTitle: e.course.title,
+        courseThumbnail: e.course.thumbnail,
+        overallProgress: e.progress,
+        isCompleted: e.completedAt,
+    }));
+    
+    return studentProgressData;
 }
 
 /**
@@ -136,16 +131,20 @@ const getStudentProgress = async (studentId: string): Promise<any[]> => {
  * @returns Promise<void>
  */
 const updateEnrollmentProgress = async (studentId: string, courseId: string): Promise<void> => {
-    // Get total lessons in course
     const totalLessons = await prisma.lesson.count({
-        where: { courseId }
+        where: { courseId },
     });
 
     if (totalLessons === 0) {
+        // Không có bài học nào, coi như hoàn thành 100% nếu có Enrollment
+        await prisma.enrollment.update({
+            where: { studentId_courseId: { studentId, courseId } },
+            data: { progress: 100, completedAt: new Date() },
+        });
         return;
     }
 
-    // Get completed lessons
+    // 2. Lấy số bài học đã hoàn thành
     const completedLessons = await prisma.progress.count({
         where: {
             studentId,
@@ -153,21 +152,17 @@ const updateEnrollmentProgress = async (studentId: string, courseId: string): Pr
         }
     });
 
-    // Calculate progress percentage
-    const progressPercentage = (completedLessons / totalLessons) * 100;
+    // 3. Tính toán phần trăm
+    const overallProgress = (completedLessons / totalLessons) * 100;
+    const isCompleted = overallProgress >= 100;
 
-    // Update enrollment
+    // 4. Cập nhật Enrollment
     await prisma.enrollment.update({
-        where: {
-            studentId_courseId: {
-                studentId,
-                courseId
-            }
-        },
+        where: { studentId_courseId: { studentId, courseId } },
         data: {
-            progress: Math.round(progressPercentage),
-            completedAt: progressPercentage === 100 ? new Date() : null
-        }
+            progress: parseFloat(overallProgress.toFixed(2)), // Lưu 2 chữ số thập phân
+            completedAt: isCompleted ? new Date() : null,
+        },
     });
 }
 

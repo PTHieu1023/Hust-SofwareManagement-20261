@@ -2,20 +2,9 @@ import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { authenticate, authorize } from '@/middleware/auth.middleware';
 import { validate } from '@/middleware/validation.middleware';
-import { upload } from '@/middleware/storage.middleware';
 import * as lessonController from '@/controllers/lesson.controller';
 
 const router: Router = Router();
-
-// Get lessons for a course
-router.get(
-    '/course/:courseId', 
-    [
-    param('courseId').isString().notEmpty().withMessage('courseId is required'),
-    validate,
-    ],
-    lessonController.getLessonsForStudentByCourse
-);
 
 /**
  * Protected routes (require authentication)
@@ -36,6 +25,18 @@ router.get(
 );
 
 // Teacher-only routes
+
+// Teacher/Admin: Get lesson detail (published + unpublished)
+// GET /api/lesson/teacher/lesson/:id
+router.get(
+  "/teacher/lesson/:id",
+  authorize("TEACHER", "ADMIN"),
+  [
+    param("id").isString().notEmpty().withMessage("lesson id is required"),
+    validate,
+  ],
+  lessonController.getLessonDetailForTeacher
+);
 
 /**
  * Manage lessons for a course
@@ -59,25 +60,85 @@ router.get(
 router.post(
     '/',
     authorize('TEACHER', 'ADMIN'),
-    upload.single('content'),
     [
-        body('title').notEmpty().withMessage('Title is required'),
-        body('description').optional().isString(),
-        body('type').isIn(['VIDEO', 'PDF', 'TEXT']).withMessage('Invalid lesson type'),
         body('courseId').notEmpty().withMessage('Course ID is required'),
-        body('order').isInt().withMessage('Order must be an integer'),
+        body('title').notEmpty().withMessage('Title is required'),
+        body('type').isIn(['VIDEO', 'PDF', 'TEXT']).withMessage('Invalid lesson type'),
+        body('contentUrl').notEmpty().withMessage('Content URL is required'), // Bắt buộc URL từ API upload
+        
+        body('description').optional().isString(),
+        // Order tự tính toán ở Service, không bắt buộc gửi từ FE trừ khi muốn chèn giữa
+        body('duration').optional().toInt().isInt({ min: 0 }),
+        body('order').optional().toInt().isInt({ min: 1 }),
+        body('isPublished').optional() .toBoolean().isBoolean(),
         validate,
     ],
     lessonController.createLesson
 );
 
+// 2. Update Lesson Content (Edit)
 router.put(
-    '/:id',
+  '/:id',
+  authorize('TEACHER', 'ADMIN'),
+  [
+    param('id').isString().notEmpty(),
+
+    body('title')
+      .optional({ checkFalsy: true })
+      .isString(),
+
+    body('description')
+      .optional({ checkFalsy: true })
+      .isString(),
+
+    body('type')
+      .optional({ checkFalsy: true })
+      .isIn(['VIDEO', 'PDF', 'TEXT']),
+
+    body('contentUrl')
+      .optional({ checkFalsy: true })
+      .isString(),
+
+    body('duration')
+      .optional({ checkFalsy: true })
+      .toInt()
+      .isInt({ min: 0 }),
+
+    body('order')
+      .optional({ checkFalsy: true })
+      .toInt()
+      .isInt({ min: 1 }),
+
+    body('isPublished')
+      .optional({ checkFalsy: true })
+      .toBoolean()
+      .isBoolean(),
+    validate,
+  ],
+  validate,
+  lessonController.updateLessonContent
+);
+
+
+// 3. Publish/Unpublish Lesson
+router.patch(
+    '/:id/publish',
     authorize('TEACHER', 'ADMIN'),
-    upload.single('content'),
-    lessonController.updateLesson
+    [
+        param('id').notEmpty(),
+        body('isPublished').isBoolean().withMessage('isPublished must be boolean'),
+        validate
+    ],
+    lessonController.toggleLessonPublish
 );
 
 router.delete('/:id', authorize('TEACHER', 'ADMIN'), lessonController.deleteLesson);
+
+router.patch(
+  '/teacher/course/:courseId/reorder',
+  authorize('TEACHER'),
+  lessonController.reorderLessons
+);
+
 
 export default router;

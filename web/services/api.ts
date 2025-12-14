@@ -1,12 +1,15 @@
-import axios from "axios";
+import httpClient from "../config/api";
 import {
   User,
   UserRole,
   Course,
+  Enrollment,
   UserForAdmin,
   CourseForAdmin,
   Pagination,
-  AdminStatistics
+  AdminStatistics,
+  Lesson, LessonPayload,
+  
 } from "../types";
 
 export interface Credentials {
@@ -14,31 +17,25 @@ export interface Credentials {
   password: string;
 }
 
-// ✅ Your backend base URL
-const API_URL = "http://localhost:3000/api";
-
-// ✅ Axios instance
-const client = axios.create({
-  baseURL: API_URL,
-  withCredentials: true, // important if backend uses cookies
-});
-
-// --- AUTH ---
 const login = async ({ email, password }: Credentials): Promise<User> => {
   try {
-    const res = await client.post("/auth/login", { email, password });
+    const res = await httpClient.post("/auth/login", { email, password });
+    const { user, accessToken, refreshToken } = res.data.data; 
 
-    if (!res.data?.data?.user) {
-      throw new Error("Invalid login response from server.");
+    if (!user || !accessToken || !refreshToken) {
+      throw new Error("Internal server error.");
     }
 
-    return res.data.data.user;
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("user", JSON.stringify(user)); 
+
+    return user;
   } catch (err: any) {
     const message =
       err.response?.data?.message ||
       err.response?.data?.error ||
       "Login failed";
-
     throw new Error(message);
   }
 };
@@ -49,203 +46,211 @@ const signup = async (userData: {
   password: string;
   role: UserRole;
 }): Promise<User> => {
-  // Log the payload
-  // console.log('Signing up with payload:', {
-  //   email: userData.email,
-  //   username: userData.email,
-  //   password: userData.password,
-  //   fullName: userData.name,
-  //   role: userData.role.toUpperCase(),
-  // });
-
-  const res = await client.post("/auth/register", {
+  const res = await httpClient.post("/auth/register", {
     email: userData.email,
     username: userData.email,
     password: userData.password,
     fullName: userData.name,
     role: userData.role.toUpperCase(),
   });
-
   return res.data.data.user;
 };
 
 const logout = async () => {
-  await client.post("/auth/logout");
+  try {
+      await httpClient.post("/auth/logout");
+  } catch (e) { console.log(e) }
+
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("user");
 };
 
-// --- USERS ---
 const getAllUsers = async (): Promise<User[]> => {
-  const res = await client.get("/user");
+  const res = await httpClient.get("/user");
   return res.data;
 };
 
-// --- COURSES ---
-const getCourses = async (): Promise<Course[]> => {
-  const res = await client.get("/course");
+const getUserById = async (id: string): Promise<User> => { 
+  const res = await httpClient.get(`/user/${id}`);
   return res.data;
 };
 
+// 1. Get All (Public + Search/Filter)
+const getCourses = async (params?: { search?: string; level?: string; category?: string }): Promise<Course[]> => {
+  const res = await httpClient.get("/course", { params }); 
+  return res.data;
+};
+
+// 2. Get Detail
 const getCourseById = async (id: string): Promise<Course> => {
-  const res = await client.get(`/course/${id}`);
+  const res = await httpClient.get(`/course/${id}`);
   return res.data;
 };
 
-// --- ADMIN ---
-/**
- * Get all users for admin with pagination, search, and role filter
- */
-const getAllUsersForAdmin = async (params?: {
-  page?: number;
-  limit?: number;
-  search?: string;
-  role?: string;
-}): Promise<{ users: UserForAdmin[]; pagination: Pagination }> => {
+// 3. Get My Courses (Teacher)
+const getMyCourses = async (): Promise<Course[]> => {
+    const res = await httpClient.get("/course/teacher/my-courses");
+    return res.data;
+};
+
+// 4. Create Course (FormData for Image)
+const createCourse = async (formData: FormData): Promise<Course> => {
+    const res = await httpClient.post("/course", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+};
+
+// 5. Update Course
+const updateCourse = async (id: string, formData: FormData): Promise<Course> => {
+    const res = await httpClient.put(`/course/${id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+};
+
+// 6. Delete Course
+const deleteCourse = async (id: string): Promise<void> => {
+    await httpClient.delete(`/course/${id}`);
+};
+
+// 7. Publish/Unpublish
+const togglePublish = async (id: string, isPublished: boolean): Promise<Course> => {
+    const res = await httpClient.patch(`/course/${id}/publish`, { isPublished });
+    return res.data.course || res.data;
+};
+
+const getLessonDetail = async (lessonId: string) => {
+  const res = await httpClient.get(`/lesson/${lessonId}`);
+  return res.data;  // { lesson, prevLessonId, nextLessonId }
+};
+
+const getLessonDetailForTeacher = async (lessonId: string) => {
+  const res = await httpClient.get(`/lesson/teacher/lesson/${lessonId}`);
+  return res.data; // { lesson, prevLessonId, nextLessonId }
+};
+
+const getLessonsForTeacherByCourse = async (courseId: string) => {
+  const res = await httpClient.get(`/lesson/teacher/course/${courseId}`);
+  return res.data;
+};
+
+const getEnrollment = async (userId: string, courseId: string): Promise<Enrollment | null> => {
+    try {
+        const res = await httpClient.get(`/enrollments/${userId}/${courseId}`);
+        return res.data;
+    } catch (err: any) {
+        if (err.response?.status === 404) return null;
+        throw err;
+    }
+};
+
+
+
+const enrollStudent = async (userId: string, courseId: string): Promise<Enrollment> => {
+    const res = await httpClient.post('/enrollments', { userId, courseId });
+    return res.data;
+};
+
+const completeLesson = async (userId: string, courseId: string, lessonId: string): Promise<Enrollment> => {
+    const res = await httpClient.post(`/enrollments/${courseId}/lessons/${lessonId}/complete`, { userId });
+    return res.data;
+};
+
+const unenrollStudent = async (userId: string, courseId: string): Promise<void> => {
+    const res = await httpClient.delete(`/enrollments/${userId}/${courseId}`);
+    if (res.status !== 200 && res.status !== 204) {
+        throw new Error(`Failed to unenroll student with status: ${res.status}`);
+    }
+};
+
+
+const uploadFile = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await httpClient.post('/uploads', formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data.url; 
+};
+
+// 2. Create Lesson
+const createLesson = async (data: LessonPayload): Promise<Lesson> => {
+    const res = await httpClient.post('/lesson', data);
+    return res.data;
+};
+
+// 3. Update Lesson
+const updateLesson = async (id: string, data: Partial<LessonPayload>): Promise<Lesson> => {
+    const res = await httpClient.put(`/lesson/${id}`, data);
+    return res.data;
+};
+
+// 4. Toggle Publish Lesson
+const toggleLessonPublish = async (id: string, isPublished: boolean): Promise<Lesson> => {
+    const res = await httpClient.patch(`/lesson/${id}/publish`, { isPublished });
+    return res.data;
+};
+
+// 5. Delete Lesson
+const deleteLesson = async (id: string): Promise<void> => {
+    await httpClient.delete(`/lesson/${id}`);
+};
+
+// 6. Reorder Lessons for Teacher
+const reorderLessonsForTeacher = async (courseId: string, orderedLessonIds: string[]) => {
+  return httpClient.patch(`/lesson/teacher/course/${courseId}/reorder`, { orderedLessonIds });
+};
+
+const getAllUsersForAdmin = async (params?: { page?: number; limit?: number; search?: string; role?: string; }): Promise<{ users: UserForAdmin[]; pagination: Pagination }> => {
   try {
     const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.search) queryParams.append('search', params.search);
-    if (params?.role) queryParams.append('role', params.role);
-
-    const url = `/admin/users${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    const res = await client.get(url);
-
-    // Server returns: { success: true, data: [...], pagination: {...} }
-    const users = res.data.data || [];
-    const pagination = res.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
-
-    // Map server response to frontend UserForAdmin type
-    const mappedUsers = users.map((u: any) => ({
-      id: u.id,
-      email: u.email,
-      fullName: u.fullName,
-      role: u.role as UserRole,
-      isActive: u.isActive,
-      isBanned: u.isBanned,
-      createdAt: u.createdAt,
-      _count: {
-        coursesCreated: u._count?.coursesCreated || 0,
-        enrollments: u._count?.enrollments || 0,
-      },
-    }));
-
-    return { users: mappedUsers, pagination };
+    if (params?.page) queryParams.append("page", params.page.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.search) queryParams.append("search", params.search);
+    if (params?.role) queryParams.append("role", params.role);
+    const url = `/admin/users${queryParams.toString() ? "?" + queryParams.toString() : ""}`;
+    const res = await httpClient.get(url);
+    return { users: res.data.data || [], pagination: res.data.pagination };
   } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to fetch users";
-    throw new Error(message);
+    throw new Error(err.response?.data?.message || "Failed to fetch users");
   }
 };
 
-const getAllCoursesForAdmin = async (params?: {
-  page?: number;
-  limit?: number;
-  search?: string;
-}): Promise<{ courses: CourseForAdmin[]; pagination: Pagination }> => {
-  try {
-    const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.search) queryParams.append('search', params.search);
-
-    const url = `/admin/courses${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    const res = await client.get(url);
-
-    // Server returns: { success: true, data: [...], pagination: {...} }
-    const courses = res.data.data || [];
-    const pagination = res.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 0 };
-
-    // Map server response to frontend CourseForAdmin type
-    const mappedCourses = courses.map((c: any) => ({
-      id: c.id,
-      title: c.title,
-      category: c.category,
-      level: c.level,
-      isPublished: c.isPublished,
-      createdAt: c.createdAt,
-      teacher: {
-        id: c.teacher.id,
-        fullName: c.teacher.fullName,
-      },
-      _count: {
-        lessons: c._count?.lessons || 0,
-        quizzes: c._count?.quizzes || 0,
-        enrollments: c._count?.enrollments || 0,
-      },
-    }));
-
-    return { courses: mappedCourses, pagination };
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to fetch courses";
-    throw new Error(message);
-  }
+const getAllCoursesForAdmin = async (params?: { page?: number; limit?: number; search?: string; }): Promise<{ courses: CourseForAdmin[]; pagination: Pagination }> => {
+    try {
+        const queryParams = new URLSearchParams();
+        if (params?.page) queryParams.append("page", params.page.toString());
+        if (params?.limit) queryParams.append("limit", params.limit.toString());
+        if (params?.search) queryParams.append("search", params.search);
+        const url = `/admin/courses${queryParams.toString() ? "?" + queryParams.toString() : ""}`;
+        const res = await httpClient.get(url);
+        return { courses: res.data.data || [], pagination: res.data.pagination };
+      } catch (err: any) {
+        throw new Error(err.response?.data?.message || "Failed to fetch courses");
+      }
 };
 
 const getStatisticsForAdmin = async (): Promise<AdminStatistics> => {
-  try {
-    const res = await client.get("/admin/stats");
-    // Server returns: { success: true, data: { overview, recentEnrollments, popularCourses } }
-    return res.data.data;
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to fetch statistics";
-    throw new Error(message);
-  }
+  const res = await httpClient.get("/admin/stats");
+  return res.data.data;
 };
 
 const banUserForAdmin = async (userId: string): Promise<void> => {
-  try {
-    await client.patch(`/admin/users/${userId}/ban`);
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to ban user";
-    throw new Error(message);
-  }
+  await httpClient.patch(`/admin/users/${userId}/ban`);
 };
 
 const unbanUserForAdmin = async (userId: string): Promise<void> => {
-  try {
-    await client.patch(`/admin/users/${userId}/unban`);
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to unban user";
-    throw new Error(message);
-  }
+  await httpClient.patch(`/admin/users/${userId}/unban`);
 };
 
 const deleteUserForAdmin = async (userId: string): Promise<void> => {
-  try {
-    await client.delete(`/admin/users/${userId}`);
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to delete user";
-    throw new Error(message);
-  }
+  await httpClient.delete(`/admin/users/${userId}`);
 };
 
 const deleteCourseForAdmin = async (courseId: string): Promise<void> => {
-  try {
-    await client.delete(`/admin/courses/${courseId}`);
-  } catch (err: any) {
-    const message =
-      err.response?.data?.message ||
-      err.response?.data?.error ||
-      "Failed to delete course";
-    throw new Error(message);
-  }
+  await httpClient.delete(`/admin/courses/${courseId}`);
 };
 
 export const api = {
@@ -253,8 +258,27 @@ export const api = {
   signup,
   logout,
   getAllUsers,
+  getUserById,
   getCourses,
   getCourseById,
+  getMyCourses, 
+  createCourse, 
+  updateCourse, 
+  deleteCourse,
+  getLessonDetail,
+  getLessonDetailForTeacher, 
+  getLessonsForTeacherByCourse,
+  togglePublish, 
+  getEnrollment,
+  enrollStudent,
+  completeLesson,
+  unenrollStudent,
+  uploadFile,
+  createLesson,
+  updateLesson,
+  toggleLessonPublish,
+  deleteLesson,
+  reorderLessonsForTeacher,
   getAllUsersForAdmin,
   getAllCoursesForAdmin,
   getStatisticsForAdmin,

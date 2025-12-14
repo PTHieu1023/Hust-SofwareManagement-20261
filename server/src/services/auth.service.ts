@@ -37,15 +37,12 @@ const register = async (data: {
     avatar?: string;
 }): Promise<{ user: Omit<User, 'password'>; token: string }> => {
     // TODO: Implement registration logic
-    const { email, username, password, fullName, role , avatar} = data;
+    const { email, username, password, fullName, role, avatar } = data;
 
     const existingUser = await prisma.user.findFirst({
         where: {
-            OR: [
-                { email: email },
-                { username: username }
-            ]
-        }
+            OR: [{ email: email }, { username: username }],
+        },
     });
 
     if (existingUser) {
@@ -55,10 +52,12 @@ const register = async (data: {
     const hashedPassword = await SecurityUtils.hashString(password);
 
     let finalAvatar = avatar;
-    if (!finalAvatar){
+    if (!finalAvatar) {
         const randomColor = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
         const initial = username.substring(0, 2);
-        finalAvatar = avatar || `https://ui-avatars.com/api/?name=${initial}&background=${randomColor}&color=fff`;
+        finalAvatar =
+            avatar ||
+            `https://ui-avatars.com/api/?name=${initial}&background=${randomColor}&color=fff`;
     }
 
     const newUser = await prisma.user.create({
@@ -69,13 +68,13 @@ const register = async (data: {
             fullName,
             role,
             avatar: finalAvatar,
-        }
+        },
     });
 
     const payload = {
         id: newUser.id,
         email: newUser.email,
-        role: newUser.role
+        role: newUser.role,
     };
 
     const token = JwtUtils.generateToken(payload, Env.JWT_EXPIRES_IN);
@@ -84,9 +83,9 @@ const register = async (data: {
 
     return {
         user: userWithoutPassword,
-        token
+        token,
     };
-}
+};
 
 /**
  * - Find user by email
@@ -100,10 +99,10 @@ const register = async (data: {
 const login = async (
     email: string,
     password: string
-): Promise<{ user: Omit<User, 'password'>; token: string }> => {
+): Promise<{ user: Omit<User, 'password'>; accessToken: string; refreshToken: string }> => {
     // TODO: Implement login logic
     const user = await prisma.user.findUnique({
-        where: { email }
+        where: { email },
     });
 
     if (!user) {
@@ -126,18 +125,20 @@ const login = async (
     const payload = {
         id: user.id,
         email: user.email,
-        role: user.role
+        role: user.role,
     };
 
-    const token = JwtUtils.generateToken(payload, Env.JWT_EXPIRES_IN);
+    const accessToken = JwtUtils.generateToken(payload, Env.JWT_EXPIRES_IN);
+    const refreshToken = JwtUtils.generateRefreshToken({ id: user.id });
 
     const { password: _, ...userWithoutPassword } = user;
 
     return {
         user: userWithoutPassword,
-        token
+        accessToken,
+        refreshToken,
     };
-}
+};
 
 /**
  * - Sign token with user data (id, email, role)
@@ -151,7 +152,7 @@ const generateToken = (user: { id: string; email: string; role: string }): strin
         { id: user.id, email: user.email, role: user.role },
         Env.JWT_EXPIRES_IN
     );
-}
+};
 
 /**
  * - Verify token signature
@@ -162,13 +163,13 @@ const generateToken = (user: { id: string; email: string; role: string }): strin
 const verifyToken = (token: string): { id: string; email: string; role: string } => {
     // TODO: Implement token verification
     const decoded = JwtUtils.verifyToken(token);
-    
+
     return {
         id: decoded?.id,
         email: decoded?.email,
-        role: decoded?.role
+        role: decoded?.role,
     };
-}
+};
 
 export default {
     register,

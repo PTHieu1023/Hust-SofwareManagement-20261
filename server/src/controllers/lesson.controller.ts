@@ -3,24 +3,6 @@ import { NextFunction, Response } from 'express';
 import lessonService from '@/services/lesson.service';
 
 /**
- * Get lessons of a course for student (public)
- * Used on course detail page to show lesson list.
- */
-export const getLessonsForStudentByCourse = async (req: AuthRequest, res: Response, _next: NextFunction) => {
-    try {
-    const { courseId } = req.params;
-
-    // Gọi service lấy danh sách lesson đã publish
-    const lessons = await lessonService.getLessonsByCourse(courseId);
-
-    return res.status(200).json(lessons);
-  } catch (error) {
-    console.error('getLessonsForStudentByCourse error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-/**
  * Get lesson detail (view content)
  * Requires authentication. Students must be enrolled in the course.
  */
@@ -94,18 +76,137 @@ export const getLessonsForTeacherByCourse = async (req: AuthRequest, res: Respon
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
-    
-export const createLesson = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
-    // TODO: Implement createLesson controller
-    return res.status(501).json({ message: 'Not implemented' });
+
+export const getLessonDetailForTeacher = async (
+  req: AuthRequest,
+  res: Response,
+  _next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const result = await lessonService.getLessonDetailForTeacher(id, user.id, user.role);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("getLessonDetailForTeacher error:", error);
+
+    if (error instanceof Error) {
+      if (error.message === "LESSON_NOT_FOUND") {
+        return res.status(404).json({ message: "Lesson not found" });
+      }
+      if (error.message === "FORBIDDEN_LESSON") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+    }
+
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+export const createLesson = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const teacherId = req.user!.id;
+        // Lấy contentUrl trực tiếp từ body (do FE đã upload trước và gửi xuống)
+        const { title, description, type, courseId, duration, order, contentUrl, isPublished } = req.body;
+
+        const newLesson = await lessonService.createLesson(teacherId, {
+            courseId,
+            title,
+            description,
+            type,
+            contentUrl,
+            duration: duration ? parseInt(duration) : 0,
+            order: order ? parseInt(order) : undefined,
+            isPublished: isPublished
+        });
+
+        return res.status(201).json(newLesson);
+    } catch (error) {
+        return next(error);
+    }
+};
+
+// 2. Update Lesson Content
+export const updateLessonContent = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const teacherId = req.user!.id;
+
+    const {
+      title,
+      description,
+      type,
+      duration,
+      contentUrl,
+      order,
+      isPublished,
+    } = req.body;
+
+    const updatedLesson = await lessonService.updateLessonContent(
+      id,
+      teacherId,
+      {
+        title,
+        description,
+        type,
+        contentUrl,
+        duration: duration !== undefined ? parseInt(duration) : undefined,
+        order: order !== undefined ? parseInt(order) : undefined,
+        isPublished,
+      }
+    );
+
+    return res.status(200).json(updatedLesson);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// 3. Toggle Publish
+export const toggleLessonPublish = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const teacherId = req.user!.id;
+        const { isPublished } = req.body;
+
+        const result = await lessonService.updateLessonPublishStatus(id, teacherId, isPublished);
+        return res.status(200).json(result);
+    } catch (error) {
+        return next(error);
+    }
 };
     
-export const updateLesson = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
-    // TODO: Implement updateLesson controller
-    return res.status(501).json({ message: 'Not implemented' });
-};
-    
-export const deleteLesson = async (_req: AuthRequest, res: Response, _next: NextFunction) => {
+export const deleteLesson = async (req: AuthRequest, res: Response, _next: NextFunction) => {
     // TODO: Implement deleteLesson controller
-    return res.status(501).json({ message: 'Not implemented' });
+    try {
+        const { id } = req.params;
+        const teacherId = req.user!.id;
+        await lessonService.deleteLesson(id, teacherId);
+
+        return res.status(200).json({ message: 'Lesson deleted successfully' });
+    } catch (error) {
+        return _next(error);
+    }
+};
+
+// 4. Reorder Lessons
+export const reorderLessons = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { courseId } = req.params;
+    const teacherId = req.user!.id;
+    const { orderedLessonIds } = req.body as { orderedLessonIds: string[] };
+
+    await lessonService.reorderLessons(courseId, teacherId, orderedLessonIds);
+
+    return res.status(200).json({ message: 'Reordered successfully' });
+  } catch (err) {
+    return next(err);
+  }
 };

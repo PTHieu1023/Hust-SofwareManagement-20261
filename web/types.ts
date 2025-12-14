@@ -1,4 +1,3 @@
-
 export enum UserRole {
   Student = 'STUDENT',
   Teacher = 'TEACHER',
@@ -11,6 +10,7 @@ export interface User {
   email: string;
   role: UserRole;
   isBanned?: boolean;
+  avatar?: string; // Thêm avatar nếu cần hiển thị
 }
 
 export interface Question {
@@ -27,12 +27,32 @@ export interface Quiz {
   questions: Question[];
 }
 
+export enum LessonType {
+  VIDEO = 'VIDEO',
+  PDF = 'PDF',
+  TEXT = 'TEXT',
+}
+
+export interface LessonPayload {
+  courseId?: string; 
+  title: string;
+  description?: string;
+  type: LessonType;
+  contentUrl: string;
+  duration?: number;
+  order?: number; 
+  isPublished?: boolean;
+}
 export interface Lesson {
   id: string;
   title: string;
-  type: 'video' | 'pdf';
-  content: string; // URL for video/pdf or markdown content
-  quiz?: Quiz;
+  description?: string;
+  type: LessonType;
+  contentUrl: string;
+  duration?: number;
+  order: number;
+  isPublished: boolean;
+  courseId: string;
 }
 
 export interface Course {
@@ -41,13 +61,27 @@ export interface Course {
   description: string;
   thumbnail: string;
   teacherId: string;
-  lessons: Lesson[];
+  level?: string;      
+  category?: string;   
+  isPublished: boolean; 
+  createdAt?: string;
+  updatedAt?: string;
+  lessons?: Lesson[];
+  teacher?: {          // Thêm thông tin teacher để hiển thị ở Home
+    id: string;
+    fullName: string;
+    avatar?: string;
+  };
+  _count?: {           // Thêm count để hiển thị số bài học
+    lessons: number;
+    enrollments: number;
+  };
 }
 
 export interface Enrollment {
   userId: string;
   courseId: string;
-  completedLessons: string[]; // array of lesson ids
+  completedLessons: string[]; 
 }
 
 export interface QuizAttempt {
@@ -57,8 +91,6 @@ export interface QuizAttempt {
   answers: number[];
 }
 
-// ----Admin----
-// Pagination interface
 export interface Pagination {
   total: number;
   page: number;
@@ -66,7 +98,6 @@ export interface Pagination {
   totalPages: number;
 }
 
-// User for Admin with full backend fields
 export interface UserForAdmin {
   id: string;
   email: string;
@@ -81,7 +112,6 @@ export interface UserForAdmin {
   };
 }
 
-// Course for Admin with full backend fields
 export interface CourseForAdmin {
   id: string;
   title: string;
@@ -100,7 +130,6 @@ export interface CourseForAdmin {
   };
 }
 
-// Statistics interfaces
 export interface StatisticsOverview {
   totalUsers: number;
   totalStudents: number;
@@ -146,15 +175,16 @@ export interface AdminStatistics {
   popularCourses: PopularCourse[];
 }
 
-//----Views----
-
 export type View =
   | { page: 'home' }
   | { page: 'login' }
   | { page: 'signup' }
   | { page: 'course'; id: string }
   | { page: 'lesson'; courseId: string; lessonId: string }
+  | { page: 'manage-lessons'; courseId: string }
   | { page: 'quiz'; courseId: string; lessonId: string; quizId: string }
   | { page: 'student-dashboard' }
   | { page: 'teacher-dashboard' }
-  | { page: 'admin-dashboard' };
+  | { page: 'admin-dashboard' }
+  | { page: 'create-course' }    
+  | { page: 'edit-course'; id: string }; 

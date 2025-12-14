@@ -2,11 +2,17 @@ import Env from '@/utils/env.utils';
 import multer from 'multer';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
+import fs from 'node:fs';
 
 export const upload = multer({
     storage: multer.diskStorage({
         destination: (_req, file, cb) => {
             const uploadPath = path.join(Env.UPLOAD_DIR, file.fieldname);
+
+            // create dir if not exists
+            if (!fs.existsSync(uploadPath)) {
+                fs.mkdirSync(uploadPath, { recursive: true });
+            }
             cb(null, uploadPath);
         },
         filename: (_req, file, cb) => {

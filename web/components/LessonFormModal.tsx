@@ -24,7 +24,6 @@ const LessonFormModal: React.FC<LessonFormModalProps> = ({
   const [duration, setDuration] = useState<string>('');
   const [contentUrl, setContentUrl] = useState('');
   const [isPublished, setIsPublished] = useState(false);
-  const [order, setOrder] = useState<string>(''); // Backend chưa validate order nhưng cứ giữ để dùng sau
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +38,6 @@ const LessonFormModal: React.FC<LessonFormModalProps> = ({
       setDuration(lessonToEdit.duration ? lessonToEdit.duration.toString() : ''); 
       setContentUrl(lessonToEdit.contentUrl);
       setIsPublished(lessonToEdit.isPublished);
-      setOrder(lessonToEdit.order ? lessonToEdit.order.toString() : '');
     } else {
       // Reset form khi Create
       setTitle('');
@@ -48,7 +46,6 @@ const LessonFormModal: React.FC<LessonFormModalProps> = ({
       setDuration('');
       setContentUrl('');
       setIsPublished(false);
-      setOrder('');
       setSelectedFile(null);
     }
   }, [lessonToEdit, isOpen]);
@@ -76,7 +73,6 @@ const LessonFormModal: React.FC<LessonFormModalProps> = ({
       // 2. Chuẩn bị dữ liệu chung
       // Backend yêu cầu duration là INT, ta dùng parseInt để chắc chắn không bị float
       const safeDuration = duration ? parseInt(duration) : 0; 
-      const safeOrder = order ? parseInt(order) : undefined;
 
       // Object cơ bản (dùng cho cả Create và Update)
       const basePayload = {
@@ -86,7 +82,6 @@ const LessonFormModal: React.FC<LessonFormModalProps> = ({
         contentUrl: finalUrl,
         duration: safeDuration,
         isPublished: isPublished, // Đảm bảo là boolean
-        order: safeOrder
       };
 
       console.log("Submitting Payload:", basePayload);
@@ -163,18 +158,6 @@ const LessonFormModal: React.FC<LessonFormModalProps> = ({
                 onChange={e => setDuration(e.target.value)} 
               />
             </div>
-          </div>
-
-          {/* Order (Optional) */}
-          <div>
-             <label className="block text-sm font-medium mb-1 dark:text-slate-300">Order (Optional)</label>
-             <input 
-               type="number" 
-               className="w-full p-2 border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-               value={order} 
-               onChange={e => setOrder(e.target.value)} 
-               placeholder="Example: 1"
-             />
           </div>
 
           {/* Description */}

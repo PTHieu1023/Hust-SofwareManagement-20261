@@ -7,26 +7,34 @@ export interface LessonDetail {
   nextLessonId: string | null;
 }
 
-/** ID
- * - Filter by published status
- * - Order by lesson order
- * @param courseId - Course ID
- * @returns Promise<Lesson[]>
- */
-// List lessons of a course (public, only published)
-const getLessonsByCourse = async (courseId: string): Promise<Lesson[]> => {
-  const lessons = await prisma.lesson.findMany({
-    where: {
-      courseId,
-      isPublished: true,      // only get lessons that are published for students
-    },
-    orderBy: {
-      order: 'asc',           // order by lesson order
-    },
-  });
+const findPrevNext = async (params: {
+  courseId: string;
+  order: number;
+  onlyPublished: boolean;
+}) => {
+  const { courseId, order, onlyPublished } = params;
 
-  return lessons;
+  const publishedFilter = onlyPublished ? { isPublished: true } : {};
+
+  const [prevLesson, nextLesson] = await Promise.all([
+    prisma.lesson.findFirst({
+      where: { courseId, ...publishedFilter, order: { lt: order },},
+      orderBy: { order: "desc" },
+      select: { id: true },
+    }),
+    prisma.lesson.findFirst({
+      where: { courseId, ...publishedFilter, order: { gt: order },},
+      orderBy: { order: "asc" },
+      select: { id: true },
+    }),
+  ]);
+
+  return {
+    prevLessonId: prevLesson?.id ?? null,
+    nextLessonId: nextLesson?.id ?? null,
+  };
 };
+
 
 /**
  * For students to view lesson content (with prev/next).
@@ -44,16 +52,12 @@ const getLessonDetailForStudent = async (
   });
 
   // If lesson does not exist or is not published -> not found
-  if (!lesson || !lesson.isPublished) {
-    throw new Error('LESSON_NOT_FOUND');
-  }
+  if (!lesson || !lesson.isPublished) { throw new Error('LESSON_NOT_FOUND');}
 
   // Check if student has enrolled in the course containing this lesson
   const enrollment = await prisma.enrollment.findFirst({
-    where: {
-      courseId: lesson.courseId,
-      studentId: userId,
-    },
+    where: { courseId: lesson.courseId, studentId: userId},
+    select: { id: true },
   });
 
   if (!enrollment) {
@@ -62,37 +66,44 @@ const getLessonDetailForStudent = async (
   }
 
   // Find previous (prev) and next lessons in the same course, only published lessons
-  const [prevLesson, nextLesson] = await Promise.all([
-    prisma.lesson.findFirst({
-      where: {
-        courseId: lesson.courseId,
-        isPublished: true,
-        order: { lt: lesson.order }, // smaller than current order
-      },
-      orderBy: {
-        order: 'desc', // largest among the previous lessons
-      },
-    }),
-    prisma.lesson.findFirst({
-      where: {
-        courseId: lesson.courseId,
-        isPublished: true,
-        order: { gt: lesson.order }, // greater than current order
-      },
-      orderBy: {
-        order: 'asc', // smallest among the next lessons
-      },
-    }),
-  ]);
+  const nav = await findPrevNext({
+    courseId: lesson.courseId,
+    order: lesson.order,
+    onlyPublished: true,
+  });
 
-  // progress here if needed
-
-  return {
-    lesson,
-    prevLessonId: prevLesson?.id ?? null,
-    nextLessonId: nextLesson?.id ?? null,
-  };
+  return { lesson, ...nav };
 };
+
+const getLessonDetailForTeacher = async (
+  lessonId: string,
+  userId: string,
+  role: string
+): Promise<LessonDetail> => {
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    include: { course: true },
+  });
+
+  if (!lesson) throw new Error("LESSON_NOT_FOUND");
+
+  // ADMIN xem mọi course, TEACHER chỉ xem course mình tạo
+  const isAdmin = role === "ADMIN";
+  const isOwnerTeacher = role === "TEACHER" && lesson.course.teacherId === userId;
+
+  if (!isAdmin && !isOwnerTeacher) {
+    throw new Error("FORBIDDEN_LESSON");
+  }
+
+  const nav = await findPrevNext({
+    courseId: lesson.courseId,
+    order: lesson.order,
+    onlyPublished: false,
+  });
+
+  return { lesson, ...nav };
+};
+
 /**
  * Teacher watches the list of lessons for a course they created
  * - Do not filter isPublished (see both published and draft)
@@ -124,45 +135,6 @@ const getLessonsForTeacherByCourse = async (
 
   return lessons;
 };
-
-const getLessonDetailForTeacher = async (
-  lessonId: string,
-  userId: string,
-  role: string
-): Promise<LessonDetail> => {
-  const lesson = await prisma.lesson.findUnique({
-    where: { id: lessonId },
-    include: { course: true },
-  });
-
-  if (!lesson) throw new Error("LESSON_NOT_FOUND");
-
-  // ADMIN xem mọi course, TEACHER chỉ xem course mình tạo
-  const isAdmin = role === "ADMIN";
-  const isOwnerTeacher = role === "TEACHER" && lesson.course.teacherId === userId;
-
-  if (!isAdmin && !isOwnerTeacher) {
-    throw new Error("FORBIDDEN_LESSON");
-  }
-
-  const [prevLesson, nextLesson] = await Promise.all([
-    prisma.lesson.findFirst({
-      where: { courseId: lesson.courseId, order: { lt: lesson.order } }, // không filter isPublished
-      orderBy: { order: "desc" },
-    }),
-    prisma.lesson.findFirst({
-      where: { courseId: lesson.courseId, order: { gt: lesson.order } }, // không filter isPublished
-      orderBy: { order: "asc" },
-    }),
-  ]);
-
-  return {
-    lesson,
-    prevLessonId: prevLesson?.id ?? null,
-    nextLessonId: nextLesson?.id ?? null,
-  };
-};
-
 
 /**
  * - Verify teacher owns the course
@@ -313,28 +285,85 @@ export const updateLessonPublishStatus = async (
  * @returns Promise<void>
  */
 const deleteLesson = async (lessonId: string, teacherId: string): Promise<void> => {
-    const lesson = await prisma.lesson.findUnique({
-      where: { id: lessonId},
-      include: { course: true}
+  await prisma.$transaction(async (tx) => {
+    const lesson = await tx.lesson.findUnique({
+      where: { id: lessonId },
+      include: { course: true },
     });
 
-    if (!lesson) throw new Error('Lesson not found');
-    if (lesson.course.teacherId !== teacherId){
-      throw new Error('You have no permission to delete this lesson');
+    if (!lesson) throw new Error("Lesson not found");
+    if (lesson.course.teacherId !== teacherId) {
+      throw new Error("You have no permission to delete this lesson");
     }
 
-    await prisma.lesson.delete({
-      where: {id: lessonId}
+    // Xoá lesson
+    await tx.lesson.delete({ where: { id: lessonId } });
+
+    // Re-index order trong cùng course
+    const remain = await tx.lesson.findMany({
+      where: { courseId: lesson.courseId },
+      orderBy: { order: "asc" },
+      select: { id: true },
     });
-}
+
+    // Gán lại order từ 1..n
+    await Promise.all( remain.map((l, i) => tx.lesson.update({
+          where: { id: l.id },
+          data: { order: i + 1 },
+        }),
+      ),
+    );
+  });
+};
+
+const reorderLessons = async ( courseId: string, teacherId: string, orderedLessonIds: string[], ): Promise<void> => {
+  await prisma.$transaction(async (tx) => {
+    const course = await tx.course.findUnique({
+      where: { id: courseId },
+      select: { teacherId: true },
+    });
+
+    if (!course) throw new Error('COURSE_NOT_FOUND');
+    if (course.teacherId !== teacherId) throw new Error('FORBIDDEN');
+
+    const existing = await tx.lesson.findMany({
+      where: { courseId },
+      select: { id: true },
+      orderBy: { order: 'asc' },
+    });
+
+    // Validate: đủ số lượng + đúng id
+    const dbIds = new Set(existing.map((l) => l.id));
+    if (
+      orderedLessonIds.length !== existing.length ||
+      orderedLessonIds.some((id) => !dbIds.has(id))
+    ) {
+      throw new Error('INVALID_ORDER');
+    }
+
+    // Phase 1: đẩy order lên cao để tránh conflict unique
+    await tx.lesson.updateMany({
+      where: { courseId },
+      data: { order: { increment: 1000 } },
+    });
+
+    // Phase 2: set lại 1..n theo thứ tự mới
+    for (let i = 0; i < orderedLessonIds.length; i++) {
+      await tx.lesson.update({
+        where: { id: orderedLessonIds[i] },
+        data: { order: i + 1 },
+      });
+    }
+  });
+};
 
 export default {
-    getLessonsByCourse,
     getLessonDetailForStudent,
-    getLessonsForTeacherByCourse,
     getLessonDetailForTeacher,
+    getLessonsForTeacherByCourse,
     createLesson,
     updateLessonContent,
     updateLessonPublishStatus,
     deleteLesson,
+    reorderLessons,
 };
